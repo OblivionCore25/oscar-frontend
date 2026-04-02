@@ -1,1 +1,16 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*
+
+# Compiled outputs
+dist/
+dist-ssr/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
