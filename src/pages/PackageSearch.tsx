@@ -174,6 +174,38 @@ export default function PackageSearch() {
         </form>
       </div>
 
+      {/* DB table skeleton while loading */}
+      {!queryParams && !isLoading && ingestedLoading && (
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-8 shrink-0 animate-pulse">
+          <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
+            <div className="w-4 h-4 bg-gray-200 rounded-full" />
+            <div className="h-3.5 bg-gray-200 rounded w-36" />
+            <div className="h-5 bg-gray-200 rounded-full w-20 ml-1" />
+          </div>
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-100">
+                {['Package', 'Version', 'Ecosystem', ''].map((_, i) => (
+                  <th key={i} className="px-5 py-2">
+                    <div className="h-2.5 bg-gray-200 rounded w-16" />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <tr key={i} className="border-b border-gray-50">
+                  <td className="px-5 py-3"><div className="h-3 bg-gray-100 rounded w-40" /></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-gray-100 rounded w-16" /></td>
+                  <td className="px-4 py-3"><div className="h-4 bg-gray-100 rounded w-12" /></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-gray-100 rounded-full w-4 ml-auto" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {/* Ingested packages browser (shown when search bar is idle and DB has data) */}
       {!queryParams && !isLoading && (ingestedData?.total ?? 0) > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-8 shrink-0">
