@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useGraphQuery } from '../hooks/useGraphQuery';
 import { useIngestedPackages } from '../hooks/useIngestedPackages';
@@ -23,7 +23,22 @@ export default function GraphViewer() {
 
   const hasParams = !!(ecosystem && packageName && version);
 
-  const { data, isLoading, error } = useGraphQuery({ ecosystem, packageName, version });
+  const { data, isLoading, error, progress } = useGraphQuery({ ecosystem, packageName, version });
+
+  // Track monotonic maximum percentage
+  const maxPctRef = useRef(0);
+  useEffect(() => {
+    maxPctRef.current = 0;
+  }, [ecosystem, packageName, version]);
+
+  let currentPct = 0;
+  if (progress) {
+    const total = Math.max(progress.discovered, progress.processed + progress.inQueue);
+    currentPct = Math.floor((progress.processed / total) * 100);
+    // Never let it jump backwards visually
+    if (currentPct > maxPctRef.current) maxPctRef.current = currentPct;
+  }
+  const displayPct = maxPctRef.current;
 
   // Ingested packages for the library panel
   const { data: ingestedData } = useIngestedPackages(ecosystem);
@@ -239,11 +254,45 @@ export default function GraphViewer() {
 
           {hasParams && isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/80 backdrop-blur-sm z-20">
-              <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
-              <h2 className="text-lg font-semibold text-gray-900">Resolving Transitive Graph…</h2>
-              <p className="text-gray-500 text-sm mt-2 max-w-xs text-center">
-                Fetching all indirect dependencies. This may take a few seconds for very large packages.
-              </p>
+              <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <Loader2 className="w-5 h-5 text-blue-600 animate-spin mr-3" />
+                    Resolving Graph
+                  </h2>
+                  {progress && (
+                    <span className="text-sm font-bold text-blue-600">{displayPct}%</span>
+                  )}
+                </div>
+                
+                <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden mb-4 relative">
+                  <div 
+                    className="h-full bg-blue-600 transition-all duration-300 ease-out absolute left-0 top-0 rounded-full"
+                    style={{ width: `${progress ? displayPct : 5}%` }}
+                  ></div>
+                </div>
+
+                <div className="text-sm text-gray-500 space-y-2">
+                  {!progress ? (
+                    <p>Initializing connection to observatory...</p>
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded border border-gray-100">
+                        <span>Nodes resolved:</span>
+                        <span className="font-semibold text-gray-800">{progress.processed} <span className="text-gray-400 font-normal">/ {progress.discovered}</span></span>
+                      </div>
+                      <div className="flex justify-between items-center px-3">
+                        <span>Currently fetching:</span>
+                        <span className="font-semibold text-indigo-600 whitespace-nowrap">{progress.missing} missing packages</span>
+                      </div>
+                      <div className="flex justify-between items-center px-3">
+                        <span>BFS Queue size:</span>
+                        <span className="font-semibold text-gray-700">{progress.inQueue}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 

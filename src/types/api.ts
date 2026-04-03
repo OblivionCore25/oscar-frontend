@@ -91,4 +91,19 @@ export interface IngestedPackagesResponse {
   total: number;
 }
 
+// Streaming Progress -------------------------------------------------------
 
+export interface StreamProgressEvent {
+  type: 'progress';
+  processed: number;
+  discovered: number;
+  inQueue: number;
+  missing: number;
+}
+
+export interface StreamCompleteEvent {
+  type: 'complete';
+  data: TransitiveGraphResponse;
+}
+
+export type TransitiveStreamEvent = StreamProgressEvent | StreamCompleteEvent;
