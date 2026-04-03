@@ -77,4 +77,18 @@ export interface CoverageResponse {
   coveragePct: number;
 }
 
+// Ingested Packages --------------------------------------------------------
+
+export interface IngestedPackageItem {
+  ecosystem: string;
+  name: string;
+  version: string;
+}
+
+export interface IngestedPackagesResponse {
+  ecosystem: string;
+  packages: IngestedPackageItem[];
+  total: number;
+}
+
 

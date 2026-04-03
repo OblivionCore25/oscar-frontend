@@ -1,34 +1,50 @@
+import { useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useGraphQuery } from '../hooks/useGraphQuery';
+import { useIngestedPackages } from '../hooks/useIngestedPackages';
 import GraphCanvas from '../components/GraphCanvas';
-import { Network, Loader2, ArrowLeft, AlertCircle, PanelRight, FlaskConical } from 'lucide-react';
-import { useState } from 'react';
+import Pagination from '../components/Pagination';
+import { Network, Loader2, ArrowLeft, AlertCircle, PanelRight, FlaskConical, Database, Search } from 'lucide-react';
+
+const LIB_PAGE_SIZE = 15;
 
 export default function GraphViewer() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [libOpen, setLibOpen] = useState(false);
+  const [libSearch, setLibSearch] = useState('');
+  const [libPage, setLibPage] = useState(1);
   const [selectedEdge, setSelectedEdge] = useState<{ source: string; target: string } | null>(null);
 
-  const ecosystem = searchParams.get('ecosystem');
+  const ecosystem = searchParams.get('ecosystem') ?? 'npm';
   const packageName = searchParams.get('package');
   const version = searchParams.get('version');
 
   const hasParams = !!(ecosystem && packageName && version);
 
-  const { data, isLoading, error } = useGraphQuery({
-    ecosystem,
-    packageName,
-    version,
-  });
+  const { data, isLoading, error } = useGraphQuery({ ecosystem, packageName, version });
+
+  // Ingested packages for the library panel
+  const { data: ingestedData } = useIngestedPackages(ecosystem);
+  const filteredPackages = useMemo(() => {
+    const q = libSearch.toLowerCase();
+    return (ingestedData?.packages ?? []).filter(p =>
+      !q || p.name.toLowerCase().includes(q)
+    );
+  }, [ingestedData, libSearch]);
+
+  // Reset to page 1 whenever filter changes
+  const libTotalPages = Math.ceil(filteredPackages.length / LIB_PAGE_SIZE);
+  const libPageClamped = Math.min(libPage, libTotalPages || 1);
+  const libPageSlice = filteredPackages.slice(
+    (libPageClamped - 1) * LIB_PAGE_SIZE,
+    libPageClamped * LIB_PAGE_SIZE,
+  );
 
   const getConstraintBadge = (constraint: string) => {
-    if (!constraint || constraint === 'unconstrained') {
-      return 'bg-red-100 text-red-700 border border-red-200';
-    }
-    if (constraint.startsWith('==') || constraint.includes('===')) {
-      return 'bg-amber-100 text-amber-700 border border-amber-200';
-    }
+    if (!constraint || constraint === 'unconstrained') return 'bg-red-100 text-red-700 border border-red-200';
+    if (constraint.startsWith('==') || constraint.includes('===')) return 'bg-amber-100 text-amber-700 border border-amber-200';
     return 'bg-green-100 text-green-700 border border-green-200';
   };
 
@@ -37,6 +53,20 @@ export default function GraphViewer() {
     if (constraint.startsWith('==') || constraint.includes('===')) return '🔒';
     return '✓';
   };
+
+  // When the user jumps to a package from the library panel, navigate via URL
+  const handleJump = (name: string, ver: string) => {
+    navigate(`/graph?ecosystem=${ecosystem}&package=${encodeURIComponent(name)}&version=${encodeURIComponent(ver)}`);
+    setLibOpen(false);
+    setLibSearch('');
+  };
+
+  // Left-panel offset when lib is open, right offset when constraint sidebar is open
+  const canvasClass = [
+    'relative flex-1 transition-all duration-200',
+    libOpen ? 'ml-64' : '',
+    sidebarOpen && data ? 'mr-72' : '',
+  ].join(' ');
 
   return (
     <div className="h-full flex flex-col bg-slate-50 relative overflow-hidden">
@@ -55,6 +85,24 @@ export default function GraphViewer() {
         </div>
 
         <div className="pointer-events-auto flex gap-2">
+          {/* Library toggle */}
+          <button
+            onClick={() => { setLibOpen(o => !o); setSidebarOpen(false); }}
+            className={`border shadow-sm px-3 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors ${
+              libOpen
+                ? 'bg-blue-50 border-blue-300 text-blue-700'
+                : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <Database className="w-4 h-4" />
+            DB Library
+            {(ingestedData?.total ?? 0) > 0 && (
+              <span className="bg-blue-100 text-blue-700 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                {ingestedData!.total}
+              </span>
+            )}
+          </button>
+
           {hasParams && (
             <button
               onClick={() => navigate(`/methods/graph?project=${packageName}-${version}`)}
@@ -64,9 +112,10 @@ export default function GraphViewer() {
               Method Call Graph
             </button>
           )}
+
           {data && (
             <button
-              onClick={() => setSidebarOpen(o => !o)}
+              onClick={() => { setSidebarOpen(o => !o); setLibOpen(false); }}
               className={`bg-white border shadow-sm px-3 py-2 rounded-lg font-medium text-sm flex items-center transition-colors gap-2 ${
                 sidebarOpen
                   ? 'border-blue-300 text-blue-700 bg-blue-50'
@@ -82,6 +131,7 @@ export default function GraphViewer() {
               )}
             </button>
           )}
+
           <button
             onClick={() => navigate('/')}
             className="bg-white border border-gray-200 shadow-sm text-gray-700 px-4 py-2 rounded-lg font-medium text-sm hover:bg-gray-50 flex items-center transition-colors"
@@ -95,9 +145,82 @@ export default function GraphViewer() {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
 
-        {/* Graph Canvas */}
-        <div className={`relative flex-1 transition-all duration-200 ${sidebarOpen && data ? 'mr-72' : ''}`}>
+        {/* ── DB Library Panel (left) ────────────────────────────────── */}
+        {libOpen && (
+          <div className="absolute top-0 left-0 bottom-0 w-64 bg-white border-r border-gray-200 shadow-md flex flex-col z-10">
+            <div className="px-4 py-3 border-b border-gray-100 shrink-0">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <Database className="w-4 h-4 text-blue-500" />
+                  <h2 className="text-sm font-bold text-gray-900">Observatory DB</h2>
+                </div>
+                <button
+                  onClick={() => setLibOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded p-0.5 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" />
+                <input
+                  type="text"
+                  value={libSearch}
+                  onChange={e => { setLibSearch(e.target.value); setLibPage(1); }}
+                  placeholder="Filter packages…"
+                  className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-400"
+                />
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1.5">
+                {filteredPackages.length} of {ingestedData?.total ?? 0} packages
+              </p>
+            </div>
 
+            <div className="overflow-y-auto flex-1">
+              {libPageSlice.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-10">Nothing in DB yet.</p>
+              ) : (
+                libPageSlice.map(pkg => {
+                  const isCurrent = pkg.name === packageName && pkg.version === version;
+                  return (
+                    <button
+                      key={`${pkg.ecosystem}:${pkg.name}`}
+                      onClick={() => handleJump(pkg.name, pkg.version)}
+                      className={`w-full text-left px-4 py-2.5 border-b border-gray-50 flex items-center justify-between group transition-colors ${
+                        isCurrent ? 'bg-blue-50' : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <p className={`text-[12px] font-mono font-medium truncate ${isCurrent ? 'text-blue-700' : 'text-gray-800 group-hover:text-blue-600'}`}>
+                          {pkg.name}
+                        </p>
+                        <p className="text-[10px] text-gray-400 font-mono mt-0.5">v{pkg.version}</p>
+                      </div>
+                      {isCurrent && (
+                        <span className="shrink-0 text-[9px] font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full ml-2">
+                          CURRENT
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            <Pagination
+              page={libPageClamped}
+              totalPages={libTotalPages}
+              totalItems={filteredPackages.length}
+              pageSize={LIB_PAGE_SIZE}
+              onPage={setLibPage}
+              compact
+            />
+          </div>
+        )}
+
+        {/* Graph Canvas */}
+        <div className={canvasClass}>
           {!hasParams && (
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200 max-w-md text-center">
@@ -117,7 +240,7 @@ export default function GraphViewer() {
           {hasParams && isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/80 backdrop-blur-sm z-20">
               <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
-              <h2 className="text-lg font-semibold text-gray-900">Resolving Transitive Graph...</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Resolving Transitive Graph…</h2>
               <p className="text-gray-500 text-sm mt-2 max-w-xs text-center">
                 Fetching all indirect dependencies. This may take a few seconds for very large packages.
               </p>
@@ -144,7 +267,7 @@ export default function GraphViewer() {
           )}
         </div>
 
-        {/* Edge Constraints Sidebar */}
+        {/* ── Edge Constraints Sidebar (right) ──────────────────────── */}
         {data && sidebarOpen && (
           <div className="absolute top-0 right-0 bottom-0 w-72 bg-white border-l border-gray-200 shadow-md flex flex-col z-10">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
@@ -167,8 +290,7 @@ export default function GraphViewer() {
                   title="Close"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
                 </button>
               </div>
@@ -184,9 +306,7 @@ export default function GraphViewer() {
                     <div
                       key={i}
                       className={`rounded-lg p-3 border transition-colors ${
-                        isSelected
-                          ? 'border-blue-300 bg-blue-50'
-                          : 'border-gray-100 bg-gray-50 hover:border-gray-200'
+                        isSelected ? 'border-blue-300 bg-blue-50' : 'border-gray-100 bg-gray-50 hover:border-gray-200'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">

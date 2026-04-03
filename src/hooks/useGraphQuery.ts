@@ -16,7 +16,7 @@ export function useGraphQuery({
     queryKey: ['transitive-graph', ecosystem, packageName, version],
     queryFn: () => getTransitiveGraph(ecosystem!, packageName!, version!),
     enabled: !!ecosystem && !!packageName && !!version,
-    staleTime: Infinity, // Graphs are mathematically immutable once published. Avoid aggressive refetching.
+    staleTime: Infinity, // Graphs are mathematically immutable once published.
     retry: false,
   });
 }
