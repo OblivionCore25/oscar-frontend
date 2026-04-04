@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ArrowLeft, Loader2, AlertCircle, PlayCircle, Network } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, PlayCircle, Network, X } from 'lucide-react';
 import MethodCallGraph from '../components/MethodCallGraph';
 
 const fetchGraph = async (slug: string) => {
@@ -24,6 +24,7 @@ export default function MethodGraphViewer() {
   const isMetaRedirect = searchParams.get('meta_redirect') === 'true';
   const originalSlug = searchParams.get('original_slug');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['method-graph', project],
@@ -81,12 +82,19 @@ export default function MethodGraphViewer() {
 
       <main className="flex-1 relative overflow-hidden bg-slate-100 flex">
         <div className={`flex-1 relative transition-all duration-300 ${selectedNodeId ? 'mr-80' : ''}`}>
-          {isMetaRedirect && originalSlug && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-2 flex items-center rounded-lg shadow-sm text-xs animate-in slide-in-from-top-4">
-              <Network className="w-4 h-4 mr-2 text-amber-600 shrink-0" />
+          {isMetaRedirect && originalSlug && !bannerDismissed && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-2 flex items-center gap-3 rounded-lg shadow-sm text-xs animate-in slide-in-from-top-4">
+              <Network className="w-4 h-4 text-amber-600 shrink-0" />
               <span>
                 <strong>Meta-Package Auto-Resolved:</strong> <span className="font-mono bg-amber-100 px-1 rounded">{originalSlug}</span> contained no AST nodes. You are viewing its structural core <span className="font-mono bg-amber-100 px-1 rounded">{project}</span> instead.
               </span>
+              <button
+                onClick={() => setBannerDismissed(true)}
+                className="ml-1 p-0.5 rounded hover:bg-amber-200 text-amber-600 hover:text-amber-800 transition-colors shrink-0"
+                aria-label="Dismiss"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
 
