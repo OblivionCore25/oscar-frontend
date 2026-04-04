@@ -41,6 +41,11 @@ export interface PackageMetrics {
   fanOut: number;
   bottleneckScore: number;
   diamondCount: number;
+  pageRank?: number;
+  eigenvectorCentrality?: number;
+  closenessCentrality?: number;
+  betweennessCentrality?: number;
+  blastRadius?: number;
 }
 
 export interface PackageDetailsResponse {
@@ -63,6 +68,11 @@ export interface TopRiskItem {
   versionFanOut: number;
   bottleneckScore: number;
   bottleneckPercentile: number;
+  pageRank?: number;
+  eigenvectorCentrality?: number;
+  closenessCentrality?: number;
+  betweennessCentrality?: number;
+  blastRadius?: number;
 }
 
 export interface TopRiskResponse {

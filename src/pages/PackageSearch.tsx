@@ -326,6 +326,13 @@ export default function PackageSearch() {
             </div>
             <div className="flex items-center gap-3">
               <button
+                onClick={() => navigate(`/research?ecosystem=${data.ecosystem}&package=${data.name}&version=${data.version}`)}
+                className="px-4 py-2 bg-fuchsia-50 border border-fuchsia-200 text-fuchsia-700 rounded-md font-medium hover:bg-fuchsia-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 flex items-center shadow-sm transition-colors"
+                title="Open comprehensive Research Console"
+              >
+                Deep Analysis
+              </button>
+              <button
                 onClick={handleMethodInsights}
                 disabled={isIngestingMethod}
                 className="px-4 py-2 bg-purple-50 border border-purple-200 text-purple-700 rounded-md font-medium hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center shadow-sm transition-colors disabled:opacity-75 disabled:cursor-wait"

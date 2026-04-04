@@ -53,9 +53,12 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
                 Bottleneck Score
                 <span className="font-normal text-gray-400 lowercase ml-1">(percentile rank)</span>
               </th>
-              <th className="px-6 py-4 text-right">Fan-In <span className="font-normal text-gray-400 lowercase">(Ecosystem)</span></th>
-              <th className="px-6 py-4 text-right">Fan-Out</th>
-              <th className="px-6 py-4 text-right">Actions</th>
+              <th className="px-4 py-4 text-right">Fan-In</th>
+              <th className="px-4 py-4 text-right">Fan-Out</th>
+              <th className="px-4 py-4 text-right">PageRank</th>
+              <th className="px-4 py-4 text-right">Eigenvec.</th>
+              <th className="px-4 py-4 text-right">Blast Rad.</th>
+              <th className="px-4 py-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -90,29 +93,28 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right tabular-nums">
+                  <td className="px-4 py-4 text-right tabular-nums">
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-2">
                         <span className="text-gray-700">{item.fanIn.toLocaleString()}</span>
-                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">All Vers.</span>
-                      </div>
-                      <div className="flex items-center gap-2" title="Exact reverse-dependency resolution requires full ecosystem SemVer parsing.">
-                        <span className="text-gray-400 font-medium text-xs">N/A*</span>
-                        <span className="text-[10px] text-blue-500/80 bg-blue-50 px-1.5 py-0.5 rounded font-mono">v{item.version}</span>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right tabular-nums">
+                  <td className="px-4 py-4 text-right tabular-nums">
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-2">
                         <span className="text-gray-700">{item.fanOut.toLocaleString()}</span>
-                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">All Vers.</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-500 font-medium">{item.versionFanOut.toLocaleString()}</span>
-                        <span className="text-[10px] text-blue-500/80 bg-blue-50 px-1.5 py-0.5 rounded font-mono">v{item.version}</span>
                       </div>
                     </div>
+                  </td>
+                  <td className="px-4 py-4 text-right tabular-nums font-mono text-xs text-indigo-600">
+                    {item.pageRank ? item.pageRank.toFixed(6) : '0.000000'}
+                  </td>
+                  <td className="px-4 py-4 text-right tabular-nums font-mono text-xs text-purple-600">
+                    {item.eigenvectorCentrality ? item.eigenvectorCentrality.toFixed(6) : '0.000000'}
+                  </td>
+                  <td className="px-4 py-4 text-right tabular-nums font-mono text-xs text-amber-600">
+                    {item.blastRadius ? item.blastRadius.toLocaleString() : '0'}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <Link
