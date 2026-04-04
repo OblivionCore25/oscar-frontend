@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ArrowLeft, Loader2, AlertCircle, PlayCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, PlayCircle, Network } from 'lucide-react';
 import MethodCallGraph from '../components/MethodCallGraph';
 
 const fetchGraph = async (slug: string) => {
@@ -21,6 +21,8 @@ export default function MethodGraphViewer() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const project = searchParams.get('project');
+  const isMetaRedirect = searchParams.get('meta_redirect') === 'true';
+  const originalSlug = searchParams.get('original_slug');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery({
@@ -79,6 +81,15 @@ export default function MethodGraphViewer() {
 
       <main className="flex-1 relative overflow-hidden bg-slate-100 flex">
         <div className={`flex-1 relative transition-all duration-300 ${selectedNodeId ? 'mr-80' : ''}`}>
+          {isMetaRedirect && originalSlug && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-2 flex items-center rounded-lg shadow-sm text-xs animate-in slide-in-from-top-4">
+              <Network className="w-4 h-4 mr-2 text-amber-600 shrink-0" />
+              <span>
+                <strong>Meta-Package Auto-Resolved:</strong> <span className="font-mono bg-amber-100 px-1 rounded">{originalSlug}</span> contained no AST nodes. You are viewing its structural core <span className="font-mono bg-amber-100 px-1 rounded">{project}</span> instead.
+              </span>
+            </div>
+          )}
+
           {!project && (
             <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center h-full">
               <AlertCircle className="w-12 h-12 text-indigo-500 mb-4" />
@@ -111,8 +122,17 @@ export default function MethodGraphViewer() {
             </div>
           )}
 
-          {project && data && !isLoading && !error && (
+          {project && data && !isLoading && !error && data.nodes.length > 0 && (
               <MethodCallGraph data={data} highlightedNodes={highlightedNodes} onNodeSelect={setSelectedNodeId} />
+          )}
+
+          {project && data && !isLoading && !error && data.nodes.length === 0 && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center h-full bg-slate-50 z-10">
+              <AlertCircle className="w-12 h-12 text-slate-400 mb-4" />
+              <h2 className="text-xl font-bold text-slate-700">No Computational Topology Found</h2>
+              <p className="text-slate-500 mt-2 max-w-sm">The Static Analyzer found zero valid Python methods or graph nodes for this package release.</p>
+              <button onClick={() => navigate('/methods')} className="mt-5 px-4 py-2 bg-white border border-slate-300 rounded shadow-sm hover:bg-slate-50 font-medium">Browse Projects</button>
+            </div>
           )}
         </div>
 

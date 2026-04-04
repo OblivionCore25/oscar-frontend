@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useGraphQuery } from '../hooks/useGraphQuery';
 import { useIngestedPackages } from '../hooks/useIngestedPackages';
+import { ingestPackageMethod } from '../services/methodApi';
 import GraphCanvas from '../components/GraphCanvas';
 import Pagination from '../components/Pagination';
 import { Network, Loader2, ArrowLeft, AlertCircle, PanelRight, FlaskConical, Database, Search } from 'lucide-react';
@@ -22,6 +23,8 @@ export default function GraphViewer() {
   const version = searchParams.get('version');
 
   const hasParams = !!(ecosystem && packageName && version);
+  
+  const [isIngestingMethod, setIsIngestingMethod] = useState(false);
 
   const { data, isLoading, error, progress } = useGraphQuery({ ecosystem, packageName, version });
 
@@ -39,6 +42,19 @@ export default function GraphViewer() {
     if (currentPct > maxPctRef.current) maxPctRef.current = currentPct;
   }
   const displayPct = maxPctRef.current;
+
+  const handleMethodCallGraph = async () => {
+    if (!packageName) return;
+    setIsIngestingMethod(true);
+    try {
+      const res = await ingestPackageMethod(ecosystem, packageName);
+      navigate(`/methods/graph?project=${res.project_slug}`);
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.response?.data?.detail || err.message || 'Failed to ingest method data.');
+    } finally {
+      setIsIngestingMethod(false);
+    }
+  };
 
   // Ingested packages for the library panel
   const { data: ingestedData } = useIngestedPackages(ecosystem);
@@ -120,11 +136,16 @@ export default function GraphViewer() {
 
           {hasParams && (
             <button
-              onClick={() => navigate(`/methods/graph?project=${packageName}-${version}`)}
-              className="bg-white border border-indigo-200 shadow-sm text-indigo-700 px-3 py-2 rounded-lg font-medium text-sm hover:bg-indigo-50 flex items-center transition-colors"
+              onClick={handleMethodCallGraph}
+              disabled={isIngestingMethod}
+              className="bg-white border border-indigo-200 shadow-sm text-indigo-700 px-3 py-2 rounded-lg font-medium text-sm hover:bg-indigo-50 flex items-center transition-colors disabled:opacity-75 disabled:cursor-wait"
             >
-              <FlaskConical className="w-4 h-4 mr-2" />
-              Method Call Graph
+              {isIngestingMethod ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <FlaskConical className="w-4 h-4 mr-2" />
+              )}
+              {isIngestingMethod ? 'Parsing...' : 'Method Call Graph'}
             </button>
           )}
 

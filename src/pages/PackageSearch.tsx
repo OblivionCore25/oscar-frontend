@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Loader2, AlertCircle, Network, ArrowRight, FlaskConical, Database, CheckCircle2 } from 'lucide-react';
 import { usePackageQuery } from '../hooks/usePackageQuery';
 import { useIngestedPackages } from '../hooks/useIngestedPackages';
+import { ingestPackageMethod } from '../services/methodApi';
 import Pagination from '../components/Pagination';
 import type { IngestedPackageItem } from '../types/api';
 
@@ -20,6 +21,13 @@ export default function PackageSearch() {
 
   // Only trigger backend package query when form is explicitly submitted
   const [queryParams, setQueryParams] = useState<{ ecosystem: string; packageName: string; version: string } | null>(null);
+  
+  const [isIngestingMethod, setIsIngestingMethod] = useState(false);
+  const [metaPrompt, setMetaPrompt] = useState<{isOpen: boolean, dependencies: string[], originalSlug: string}>({
+    isOpen: false,
+    dependencies: [],
+    originalSlug: ''
+  });
 
   const { data, isLoading, error } = usePackageQuery({
     ecosystem: queryParams?.ecosystem || '',
@@ -68,6 +76,25 @@ export default function PackageSearch() {
   const handleViewGraph = () => {
     if (data) {
       navigate(`/graph?ecosystem=${data.ecosystem}&package=${encodeURIComponent(data.name)}&version=${encodeURIComponent(data.version)}`);
+    }
+  };
+
+  const handleMethodInsights = async () => {
+    if (!data) return;
+    setIsIngestingMethod(true);
+    try {
+      const res = await ingestPackageMethod(data.ecosystem, data.name);
+      if (res.is_meta_package && res.resolved_core_slug) {
+        navigate(`/methods/graph?project=${res.resolved_core_slug}&meta_redirect=true&original_slug=${data.name}`);
+      } else if (res.is_meta_package && !res.resolved_core_slug) {
+        setMetaPrompt({isOpen: true, dependencies: res.meta_dependencies, originalSlug: data.name});
+      } else {
+        navigate(`/methods/graph?project=${res.project_slug}`);
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.response?.data?.detail || err.message || 'Failed to ingest method data.');
+    } finally {
+      setIsIngestingMethod(false);
     }
   };
 
@@ -299,11 +326,16 @@ export default function PackageSearch() {
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate('/methods')}
-                className="px-4 py-2 bg-purple-50 border border-purple-200 text-purple-700 rounded-md font-medium hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center shadow-sm transition-colors"
+                onClick={handleMethodInsights}
+                disabled={isIngestingMethod}
+                className="px-4 py-2 bg-purple-50 border border-purple-200 text-purple-700 rounded-md font-medium hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center shadow-sm transition-colors disabled:opacity-75 disabled:cursor-wait"
               >
-                <FlaskConical className="w-4 h-4 mr-2 text-purple-600" />
-                Method Insights
+                {isIngestingMethod ? (
+                  <Loader2 className="w-4 h-4 mr-2 text-purple-600 animate-spin" />
+                ) : (
+                  <FlaskConical className="w-4 h-4 mr-2 text-purple-600" />
+                )}
+                {isIngestingMethod ? 'Parsing AST...' : 'Method Insights'}
               </button>
               <button
                 onClick={handleViewGraph}
@@ -337,6 +369,51 @@ export default function PackageSearch() {
           </div>
         </div>
       )}
+      {/* Meta-Package Selection Modal */}
+      {metaPrompt.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-100 bg-slate-50 flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                <Network className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Meta-Package Detected</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  <span className="font-mono bg-gray-200 px-1 py-0.5 rounded text-gray-700">{metaPrompt.originalSlug}</span> contains no computational AST nodes. It is a meta-wrapper pointer. Please select its core dependency below to natively trace:
+                </p>
+              </div>
+            </div>
+            <div className="p-4 max-h-[300px] overflow-y-auto bg-gray-50">
+              <div className="grid gap-2">
+                {metaPrompt.dependencies.map(dep => (
+                  <button
+                    key={dep}
+                    onClick={() => {
+                        setMetaPrompt(prev => ({...prev, isOpen: false}));
+                        navigate(`/methods/graph?project=${dep}&meta_redirect=true&original_slug=${metaPrompt.originalSlug}`);
+                    }}
+                    className="flex items-center justify-between p-3 rounded-lg bg-white border border-gray-200 hover:border-indigo-400 hover:shadow-sm group transition-all text-left"
+                  >
+                    <span className="font-mono font-medium text-gray-700 group-hover:text-indigo-600">{dep}</span>
+                    <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-500" />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-100 flex justify-end bg-white">
+              <button 
+                onClick={() => setMetaPrompt({isOpen: false, dependencies: [], originalSlug: ''})}
+                className="px-4 py-2 border border-gray-300 rounded font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                disabled={isIngestingMethod}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
