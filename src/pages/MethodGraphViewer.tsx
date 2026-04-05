@@ -119,13 +119,13 @@ export default function MethodGraphViewer() {
         
         {data && (
            <div className="flex items-center gap-3">
-             <div className="bg-[#2a2a35] px-3 py-1.5 rounded-lg border border-[#2a2a35] flex flex-col items-center">
+             <div className="bg-[#2a2a35] px-3 py-1.5 rounded-lg border border-white/5 flex flex-col items-center shadow-sm">
                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Nodes</span>
-               <span className="text-sm font-bold text-slate-800 font-mono">{data.node_count}</span>
+               <span className="text-sm font-bold text-indigo-400 font-mono">{data.node_count}</span>
              </div>
-             <div className="bg-[#2a2a35] px-3 py-1.5 rounded-lg border border-[#2a2a35] flex flex-col items-center">
+             <div className="bg-[#2a2a35] px-3 py-1.5 rounded-lg border border-white/5 flex flex-col items-center shadow-sm">
                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Edges</span>
-               <span className="text-sm font-bold text-slate-800 font-mono">{data.edge_count}</span>
+               <span className="text-sm font-bold text-indigo-400 font-mono">{data.edge_count}</span>
              </div>
            </div>
         )}
