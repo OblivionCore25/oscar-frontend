@@ -9,6 +9,7 @@ export default function ResearchConsole() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isIngesting, setIsIngesting] = useState(false);
+  const [showWarning, setShowWarning] = useState(true);
   
   const ecosystem = searchParams.get('ecosystem') || 'npm';
   const packageName = searchParams.get('package');
@@ -129,6 +130,21 @@ export default function ResearchConsole() {
         
         <div className="max-w-7xl mx-auto space-y-6 relative z-10">
           
+          {showWarning && (
+            <div className="bg-amber-900/20 border border-amber-500/30 rounded-xl p-4 flex items-start text-sm shadow-lg shadow-amber-900/5 relative">
+              <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 mr-3 shrink-0" />
+              <div className="text-amber-100/80 pr-8">
+                <strong className="text-amber-400 block mb-1">Architecture Workflow Guidance</strong>
+                OSCAR computes Tier-2 metrics (Libyears, Centrality) exclusively from your <strong>local database cache</strong>. <br/>
+                • <strong>Supply Chain:</strong> Ensure you have opened the <button className="underline decoration-amber-500/50 hover:text-white transition-colors" onClick={() => navigate(`/package/${ecosystem}/${packageName}/${version}`)}>Transitive Graph Explorer</button> at least once so the BFS engine populates your local cache with the deep dependency tree.<br/>
+                • <strong>Internal Arch:</strong> Ensure you have clicked "Ingest Now" on the Method Observatory panel below to extract and analyze the AST footprint.
+              </div>
+              <button onClick={() => setShowWarning(false)} className="absolute top-4 right-4 text-amber-500/50 hover:text-amber-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* SUPPLY CHAIN PANEL */}
             <div className="bg-[#12121a] rounded-2xl border border-[#2a2a35] shadow-xl overflow-hidden backdrop-blur-sm shadow-fuchsia-900/5">
@@ -268,16 +284,19 @@ export default function ResearchConsole() {
              </div>
              
              <div className="flex-1 p-4 flex flex-col items-center justify-center text-center">
-                <GitCommit className="w-8 h-8 text-amber-400 mb-2 opacity-50" />
+                <GitCommit className={`w-8 h-8 ${m?.libyears && m.libyears > 5 ? "text-rose-400" : (m?.libyears && m.libyears > 1 ? "text-amber-400" : "text-emerald-400")} mb-2`} />
                 <div className="text-xs font-bold tracking-widest text-indigo-400 uppercase mb-1">Libyears (Tech Lag)</div>
-                <div className="font-mono text-gray-200 opacity-50 italic">computation deferred</div>
+                <div className="font-mono text-gray-200">
+                  {m?.libyears !== undefined ? <span className="font-bold text-white">{m.libyears} yrs</span> : <span className="opacity-50 italic">N/A</span>}
+                </div>
              </div>
              
              <div className="flex-1 p-4 flex flex-col items-center justify-center text-center">
-                <GitPullRequest className="w-8 h-8 text-blue-400 mb-2" />
+                <GitPullRequest className={`w-8 h-8 ${m?.diamondCount && m.diamondCount > 0 ? "text-rose-400" : "text-blue-400"} mb-2`} />
                 <div className="text-xs font-bold tracking-widest text-indigo-400 uppercase mb-1">Transitive Chain</div>
-                <div className="font-mono text-gray-200">
-                  <span className="font-bold text-white">{m?.blastRadius?.toLocaleString() || "N/A"}</span> deps <span className="text-blue-400 opacity-60 ml-1">(tier-2 depth)</span>
+                <div className="font-mono text-gray-200 flex flex-col items-center text-sm">
+                  <div><span className="font-bold text-white">{m?.transitiveDepth || 0}</span> <span className="text-gray-500 text-xs">max depth</span></div>
+                  <div><span className={`font-bold ${m?.diamondCount ? 'text-rose-400' : 'text-emerald-400'}`}>{m?.diamondCount || 0}</span> <span className="text-gray-500 text-xs">diamonds</span></div>
                 </div>
              </div>
           </div>

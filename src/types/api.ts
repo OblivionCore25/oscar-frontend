@@ -46,6 +46,8 @@ export interface PackageMetrics {
   closenessCentrality?: number;
   betweennessCentrality?: number;
   blastRadius?: number;
+  libyears?: number;
+  transitiveDepth?: number;
 }
 
 export interface PackageDetailsResponse {
