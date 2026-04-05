@@ -208,7 +208,7 @@ export default function ResearchConsole() {
                    <Box className="w-5 h-5 text-emerald-400 mr-2" />
                    <h2 className="font-bold text-gray-100 tracking-wide text-sm uppercase">Internal Arch (Method Obs.)</h2>
                  </div>
-                 {!metaData && !metaLoading && (
+                 {!metaData && !metaLoading && ecosystem?.toLowerCase() === 'pypi' && (
                     <button 
                        onClick={handleIngest}
                        disabled={isIngesting}
@@ -225,7 +225,11 @@ export default function ResearchConsole() {
               ) : !metaData ? (
                  <div className="p-12 text-center text-gray-500 flex flex-col items-center">
                     <Database className="w-8 h-8 mb-3 opacity-20" />
-                    No internal call graph data available.<br/>Analyze package to unlock method-level metrics.
+                    {ecosystem?.toLowerCase() === 'pypi' ? (
+                        <>No internal call graph data available.<br/>Analyze package to unlock method-level metrics.</>
+                    ) : (
+                        <span className="text-amber-500/80">Internal Architecture extraction for {ecosystem} packages requires an additional analyzer plugin.<br/>Currently supporting: PyPI.</span>
+                    )}
                  </div>
               ) : (
                  <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4 font-mono text-sm">
