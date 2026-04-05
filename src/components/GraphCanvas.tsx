@@ -6,6 +6,7 @@ interface GraphCanvasProps {
   data: TransitiveGraphResponse;
   onEdgeSelect?: (edge: { source: string; target: string } | null) => void;
   onNodeSelect?: (nodeId: string | null) => void;
+  vulnerableNodes?: string[];
 }
 
 interface EdgeTooltip {
@@ -16,7 +17,7 @@ interface EdgeTooltip {
   y: number;
 }
 
-export default function GraphCanvas({ data, onEdgeSelect, onNodeSelect }: GraphCanvasProps) {
+export default function GraphCanvas({ data, onEdgeSelect, onNodeSelect, vulnerableNodes }: GraphCanvasProps) {
   const [tooltip, setTooltip] = useState<EdgeTooltip | null>(null);
 
   // Classify the constraint severity for color coding
@@ -54,6 +55,7 @@ export default function GraphCanvas({ data, onEdgeSelect, onNodeSelect }: GraphC
         onEdgeSelect={onEdgeSelect}
         onNodeSelect={onNodeSelect}
         onEdgeHover={handleEdgeHover}
+        vulnerableNodes={vulnerableNodes}
       />
 
       {/* Edge hover tooltip */}

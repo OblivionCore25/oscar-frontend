@@ -119,3 +119,27 @@ export interface StreamCompleteEvent {
 }
 
 export type TransitiveStreamEvent = StreamProgressEvent | StreamCompleteEvent;
+
+// Vulnerability ---------------------------------------------------------
+
+export interface VulnerabilitySummary {
+  id: string;
+  aliases: string[];
+  summary: string;
+  severity: 'CRITICAL' | 'HIGH' | 'MODERATE' | 'LOW' | 'UNKNOWN';
+  published: string;
+  fixedVersions: string[];
+}
+
+export interface VulnerabilityBreakdownResponse {
+  breakdown: Record<string, VulnerabilitySummary[]>;
+  totalAffected: number;
+  totalVulns: number;
+  severityCounts: {
+    CRITICAL: number;
+    HIGH: number;
+    MODERATE: number;
+    LOW: number;
+    UNKNOWN: number;
+  };
+}

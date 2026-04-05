@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useGraphQuery, usePackageDetailsQuery, usePackageDepthsQuery, usePackageLibyearsQuery } from '../hooks/useGraphQuery';
+import { useGraphQuery, usePackageDetailsQuery, usePackageDepthsQuery, usePackageLibyearsQuery, useVulnerabilityQuery } from '../hooks/useGraphQuery';
 import { useIngestedPackages } from '../hooks/useIngestedPackages';
 import { ingestPackageMethod } from '../services/methodApi';
 import GraphCanvas from '../components/GraphCanvas';
@@ -34,6 +34,7 @@ export default function GraphViewer() {
   const { data: metricsData } = usePackageDetailsQuery({ ecosystem, packageName, version });
   const { data: depthsData } = usePackageDepthsQuery({ ecosystem, packageName, version });
   const { data: libyearsData } = usePackageLibyearsQuery({ ecosystem, packageName, version });
+  const { data: vulnData } = useVulnerabilityQuery({ ecosystem, packageName, version });
 
   // Track monotonic maximum percentage
   const maxPctRef = useRef(0);
@@ -127,6 +128,18 @@ export default function GraphViewer() {
     const depth = depthByPkg[targetId] ?? 0;
     const libyears = libyearsByPkg[targetId];
 
+    // Vulnerability data for this node
+    const nodeVulns = (() => {
+      if (!vulnData?.breakdown) return [];
+      for (const [key, vulns] of Object.entries(vulnData.breakdown)) {
+        const keyPkg = key.includes('@') ? key.split('@').slice(0, -1).join('@') : key;
+        if (key === targetId || keyPkg === targetId || extractPkgId(key) === targetId) {
+          return vulns as any[];
+        }
+      }
+      return [];
+    })();
+
     return (
       <div className="absolute top-0 right-0 bottom-0 w-80 bg-[#12121a]/95 backdrop-blur-xl border-l border-[#2a2a35] shadow-2xl flex flex-col z-50 shrink-0 transform-gpu transition-transform pointer-events-auto">
         <div className="px-5 py-4 border-b border-[#2a2a35]">
@@ -169,6 +182,42 @@ export default function GraphViewer() {
                 {libyears > 5 && <span className="bg-rose-500/20 text-rose-400 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Severe</span>}
               </div>
            </div>
+
+           {/* Vulnerability section */}
+           {nodeVulns.length > 0 ? (
+             <div className="bg-rose-950/30 p-3 rounded-lg border border-rose-500/20">
+               <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest block mb-2">⚠ Known Vulnerabilities ({nodeVulns.length})</span>
+               <div className="space-y-2 max-h-48 overflow-y-auto">
+                 {nodeVulns.map((v: any) => (
+                   <div key={v.id} className="bg-[#12121a]/60 p-2 rounded border border-white/5">
+                     <div className="flex items-center justify-between mb-1">
+                       <span className="text-xs font-mono font-bold text-rose-300">{v.id}</span>
+                       <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
+                         v.severity === 'CRITICAL' ? 'bg-red-500/30 text-red-300' :
+                         v.severity === 'HIGH' ? 'bg-orange-500/30 text-orange-300' :
+                         v.severity === 'MODERATE' ? 'bg-amber-500/30 text-amber-300' :
+                         v.severity === 'LOW' ? 'bg-sky-500/30 text-sky-300' :
+                         'bg-slate-500/30 text-slate-400'
+                       }`}>{v.severity}</span>
+                     </div>
+                     {v.summary && <p className="text-[10px] text-slate-400 leading-relaxed line-clamp-2">{v.summary}</p>}
+                     {v.aliases?.length > 0 && (
+                       <div className="mt-1 flex gap-1 flex-wrap">
+                         {v.aliases.map((a: string) => (
+                           <span key={a} className="text-[9px] font-mono bg-slate-800 text-slate-400 px-1 rounded">{a}</span>
+                         ))}
+                       </div>
+                     )}
+                   </div>
+                 ))}
+               </div>
+             </div>
+           ) : (
+             <div className="bg-emerald-950/20 p-3 rounded-lg border border-emerald-500/10">
+               <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest block mb-1">Vulnerability Status</span>
+               <span className="text-sm text-emerald-400 font-medium">✓ No known CVEs</span>
+             </div>
+           )}
         </div>
       </div>
     );
@@ -417,6 +466,7 @@ export default function GraphViewer() {
               metrics={metricsData}
               depths={depthsData}
               libyearsBreakdown={libyearsData}
+              vulnData={vulnData}
               onExploreEdge={handleExploreEdge}
             />
           )}
@@ -440,7 +490,7 @@ export default function GraphViewer() {
                </div>
                <div className="flex-1 relative flex">
                  <div className="flex-1 relative">
-                   <GraphCanvas data={data} onEdgeSelect={setSelectedEdge} onNodeSelect={setSelectedNode} />
+                   <GraphCanvas data={data} onEdgeSelect={setSelectedEdge} onNodeSelect={setSelectedNode} vulnerableNodes={vulnData ? Object.keys(vulnData.breakdown).map(k => extractPkgId(k)) : undefined} />
                  </div>
                  {renderNodeDetailsPanel()}
                </div>

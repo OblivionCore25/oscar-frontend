@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getTransitiveGraphStream, getPackageDetails, getTransitiveDepths, getTransitiveLibyearsBreakdown } from '../services/api';
-import type { StreamProgressEvent, PackageDetailsResponse } from '../types/api';
+import { getTransitiveGraphStream, getPackageDetails, getTransitiveDepths, getTransitiveLibyearsBreakdown, getVulnerabilityBreakdown } from '../services/api';
+import type { StreamProgressEvent, PackageDetailsResponse, VulnerabilityBreakdownResponse } from '../types/api';
 
 interface UseGraphQueryParams {
   ecosystem: string | null;
@@ -54,5 +54,14 @@ export function usePackageLibyearsQuery({ ecosystem, packageName, version }: Use
     queryFn: () => getTransitiveLibyearsBreakdown(ecosystem!, packageName!, version!),
     enabled: !!ecosystem && !!packageName && !!version,
     staleTime: Infinity,
+  });
+}
+
+export function useVulnerabilityQuery({ ecosystem, packageName, version }: UseGraphQueryParams) {
+  return useQuery<VulnerabilityBreakdownResponse, Error>({
+    queryKey: ['vulnerabilities', ecosystem, packageName, version],
+    queryFn: () => getVulnerabilityBreakdown(ecosystem!, packageName!, version!),
+    enabled: !!ecosystem && !!packageName && !!version,
+    staleTime: 10 * 60 * 1000, // 10 minutes — CVE data changes infrequently
   });
 }

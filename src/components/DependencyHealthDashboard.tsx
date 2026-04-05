@@ -3,17 +3,18 @@ import {
   Network, AlertTriangle, Layers, Watch, Search, 
   CheckCircle2, Lock, ShieldAlert, ShieldCheck
 } from 'lucide-react';
-import type { TransitiveGraphResponse, PackageDetailsResponse } from '../types/api';
+import type { TransitiveGraphResponse, PackageDetailsResponse, VulnerabilityBreakdownResponse } from '../types/api';
 
 interface DependencyHealthDashboardProps {
   data: TransitiveGraphResponse;
   metrics: PackageDetailsResponse | undefined;
   depths: Record<string, number> | undefined;
   libyearsBreakdown: Record<string, number> | undefined;
+  vulnData: VulnerabilityBreakdownResponse | undefined;
   onExploreEdge: (edge: { source: string; target: string }) => void;
 }
 
-export default function DependencyHealthDashboard({ data, metrics, depths, libyearsBreakdown, onExploreEdge }: DependencyHealthDashboardProps) {
+export default function DependencyHealthDashboard({ data, metrics, depths, libyearsBreakdown, vulnData, onExploreEdge }: DependencyHealthDashboardProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [constraintFilter, setConstraintFilter] = useState<'All' | 'Unconstrained' | 'Pinned' | 'Healthy'>('All');
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({
@@ -86,7 +87,15 @@ export default function DependencyHealthDashboard({ data, metrics, depths, libye
         depth,
         libyears,
         localFanIn: localFanIn[e.target] || 1,
-        riskPriority: priority
+        riskPriority: priority,
+        vulnCount: (() => {
+          if (!vulnData?.breakdown) return 0;
+          const tgt = extractPkgId(e.target);
+          for (const [k, v] of Object.entries(vulnData.breakdown)) {
+            if (extractPkgId(k) === tgt) return (v as any[]).length;
+          }
+          return 0;
+        })()
       };
     });
   }, [data.edges, depths]);
@@ -151,7 +160,7 @@ export default function DependencyHealthDashboard({ data, metrics, depths, libye
         <div className="flex-1 overflow-y-auto w-full p-4 md:p-6 pb-20 scroll-smooth custom-scrollbar">
           
           {/* KPI Row */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
              <div className="bg-[#12121a] p-4 rounded-xl border border-white/5 shadow-sm">
                 <div className="flex items-center text-slate-400 mb-1">
                    <Network className="w-4 h-4 mr-2" />
@@ -197,6 +206,27 @@ export default function DependencyHealthDashboard({ data, metrics, depths, libye
                    <span className="text-xs font-semibold uppercase tracking-wider">Diamond Conflicts</span>
                 </div>
                 <div className="text-2xl font-bold text-slate-100">{m?.diamondCount ?? '-'}</div>
+             </div>
+
+             <div className="bg-[#12121a] p-4 rounded-xl border border-white/5 shadow-sm relative overflow-hidden">
+                {vulnData && vulnData.totalVulns > 0 && <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/15 rounded-bl-full blur-lg"></div>}
+                <div className="flex items-center text-slate-400 mb-1 relative z-10">
+                   <ShieldAlert className="w-4 h-4 mr-2 text-rose-400/70" />
+                   <span className="text-xs font-semibold uppercase tracking-wider">Vulnerabilities</span>
+                </div>
+                {vulnData ? (
+                  <div className="relative z-10">
+                    <div className="text-2xl font-bold text-slate-100">{vulnData.totalVulns}</div>
+                    <div className="flex gap-1 mt-1.5 flex-wrap">
+                      {vulnData.severityCounts.CRITICAL > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-red-500/30 text-red-300">{vulnData.severityCounts.CRITICAL} CRIT</span>}
+                      {vulnData.severityCounts.HIGH > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-orange-500/30 text-orange-300">{vulnData.severityCounts.HIGH} HIGH</span>}
+                      {vulnData.severityCounts.MODERATE > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-amber-500/30 text-amber-300">{vulnData.severityCounts.MODERATE} MOD</span>}
+                      {vulnData.severityCounts.LOW > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-sky-500/30 text-sky-300">{vulnData.severityCounts.LOW} LOW</span>}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-2xl font-bold text-slate-100">-</div>
+                )}
              </div>
 
              <div 
@@ -277,6 +307,9 @@ export default function DependencyHealthDashboard({ data, metrics, depths, libye
                   <th className="px-4 py-3 font-semibold group cursor-pointer text-center" onClick={() => requestSort('localFanIn')}>
                     Local Fan-In <SortIcon columnKey="localFanIn" />
                   </th>
+                  <th className="px-4 py-3 font-semibold group cursor-pointer text-center" onClick={() => requestSort('vulnCount')}>
+                    CVEs <SortIcon columnKey="vulnCount" />
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -325,6 +358,15 @@ export default function DependencyHealthDashboard({ data, metrics, depths, libye
                     </td>
                     <td className="px-4 py-3 text-center">
                        <span className="text-emerald-400 font-mono font-semibold">{e.localFanIn}</span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                       {e.vulnCount > 0 ? (
+                         <span className="font-mono text-xs px-2 py-0.5 rounded-full font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                           {e.vulnCount}
+                         </span>
+                       ) : (
+                         <span className="text-emerald-400/60 text-xs">✓</span>
+                       )}
                     </td>
                   </tr>
                 ))}

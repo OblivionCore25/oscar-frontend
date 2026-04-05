@@ -10,12 +10,13 @@ interface FluidGraphCanvasProps {
   };
   mode: 'dependency' | 'method';
   highlightedNodes?: string[];
+  vulnerableNodes?: string[];
   onNodeSelect?: (nodeId: string) => void;
   onEdgeSelect?: (edge: { source: string; target: string; constraint?: string } | null) => void;
   onEdgeHover?: (edge: any | null, x: number, y: number) => void;
 }
 
-export default function FluidGraphCanvas({ data, mode, highlightedNodes, onNodeSelect, onEdgeSelect, onEdgeHover }: FluidGraphCanvasProps) {
+export default function FluidGraphCanvas({ data, mode, highlightedNodes, vulnerableNodes, onNodeSelect, onEdgeSelect, onEdgeHover }: FluidGraphCanvasProps) {
   const fgRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -99,6 +100,23 @@ export default function FluidGraphCanvas({ data, mode, highlightedNodes, onNodeS
     return '#94a3b8';
   }, [mode, data.root]);
 
+  // Build a Set of vulnerable package names for O(1) lookup
+  const vulnerableSet = useMemo(() => new Set(vulnerableNodes || []), [vulnerableNodes]);
+
+  const isNodeVulnerable = useCallback((node: any) => {
+    if (!vulnerableSet.size) return false;
+    const id = node.id || '';
+    // Extract package name from "ecosystem:pkg@ver" format
+    let core = id.includes(':') ? id.split(':', 2)[1] : id;
+    if (core.startsWith('@')) {
+      const parts = core.split('@');
+      core = '@' + parts[1];
+    } else {
+      core = core.split('@')[0];
+    }
+    return vulnerableSet.has(core);
+  }, [vulnerableSet]);
+
   // Custom node paint for the glassmorphic / glowing aesthetic
   const paintNode = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
     const isHovered = node === hoverNode;
@@ -146,6 +164,18 @@ export default function FluidGraphCanvas({ data, mode, highlightedNodes, onNodeS
       ctx.shadowBlur = 0;
     }
 
+    // Draw vulnerability red ring overlay
+    if (!isFaded && isNodeVulnerable(node)) {
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, size + 3, 0, 2 * Math.PI, false);
+      ctx.strokeStyle = '#f43f5e';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#f43f5e';
+      ctx.shadowBlur = 10;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
     // Draw label
     // Rule 1: Never draw a label if the node is currently faded out (Focus Mode active)
     if (!isFaded) {
@@ -166,7 +196,7 @@ export default function FluidGraphCanvas({ data, mode, highlightedNodes, onNodeS
         ctx.fillText(label, node.x, node.y + size + (fontSize * 1.5));
       }
     }
-  }, [hoverNode, mode, data.root, getNodeColor, focusNodeId, neighborsMap, highlightedNodes, isMassive]);
+  }, [hoverNode, mode, data.root, getNodeColor, focusNodeId, neighborsMap, highlightedNodes, isMassive, isNodeVulnerable]);
 
   const handleNodeClick = useCallback((node: any) => {
     if (onNodeSelect) onNodeSelect(node.id);
