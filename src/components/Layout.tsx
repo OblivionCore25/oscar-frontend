@@ -41,7 +41,7 @@ export function Layout({ children }: LayoutProps) {
             }
           >
             <Network className="w-5 h-5 mr-3" />
-            Graph Viewer
+            Dependency Dashboard
           </NavLink>
           
           <NavLink 

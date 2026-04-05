@@ -1,22 +1,23 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useGraphQuery } from '../hooks/useGraphQuery';
+import { useGraphQuery, usePackageDetailsQuery, usePackageDepthsQuery, usePackageLibyearsQuery } from '../hooks/useGraphQuery';
 import { useIngestedPackages } from '../hooks/useIngestedPackages';
 import { ingestPackageMethod } from '../services/methodApi';
 import GraphCanvas from '../components/GraphCanvas';
+import DependencyHealthDashboard from '../components/DependencyHealthDashboard';
 import Pagination from '../components/Pagination';
-import { Network, Loader2, ArrowLeft, AlertCircle, PanelRight, FlaskConical, Database, Search } from 'lucide-react';
+import { Network, Loader2, ArrowLeft, AlertCircle, FlaskConical, Database, Search } from 'lucide-react';
 
 const LIB_PAGE_SIZE = 15;
 
 export default function GraphViewer() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [libOpen, setLibOpen] = useState(false);
   const [libSearch, setLibSearch] = useState('');
   const [libPage, setLibPage] = useState(1);
   const [selectedEdge, setSelectedEdge] = useState<{ source: string; target: string } | null>(null);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   const ecosystem = searchParams.get('ecosystem') ?? 'npm';
   const packageName = searchParams.get('package');
@@ -26,7 +27,13 @@ export default function GraphViewer() {
   
   const [isIngestingMethod, setIsIngestingMethod] = useState(false);
 
+  const [exploreMode, setExploreMode] = useState(false);
+  const [exploreEdge, setExploreEdge] = useState<{ source: string; target: string } | null>(null);
+
   const { data, isLoading, error, progress } = useGraphQuery({ ecosystem, packageName, version });
+  const { data: metricsData } = usePackageDetailsQuery({ ecosystem, packageName, version });
+  const { data: depthsData } = usePackageDepthsQuery({ ecosystem, packageName, version });
+  const { data: libyearsData } = usePackageLibyearsQuery({ ecosystem, packageName, version });
 
   // Track monotonic maximum percentage
   const maxPctRef = useRef(0);
@@ -73,18 +80,6 @@ export default function GraphViewer() {
     libPageClamped * LIB_PAGE_SIZE,
   );
 
-  const getConstraintBadge = (constraint: string) => {
-    if (!constraint || constraint === 'unconstrained') return 'bg-red-900/40 text-red-400 border border-red-900/50';
-    if (constraint.startsWith('==') || constraint.includes('===')) return 'bg-amber-900/40 text-amber-400 border border-amber-200';
-    return 'bg-green-900/40 text-green-400 border border-green-200';
-  };
-
-  const getConstraintIcon = (constraint: string) => {
-    if (!constraint || constraint === 'unconstrained') return '⚠️';
-    if (constraint.startsWith('==') || constraint.includes('===')) return '🔒';
-    return '✓';
-  };
-
   // When the user jumps to a package from the library panel, navigate via URL
   const handleJump = (name: string, ver: string) => {
     navigate(`/graph?ecosystem=${ecosystem}&package=${encodeURIComponent(name)}&version=${encodeURIComponent(ver)}`);
@@ -92,12 +87,92 @@ export default function GraphViewer() {
     setLibSearch('');
   };
 
-  // Left-panel offset when lib is open, right offset when constraint sidebar is open
+  // Left-panel offset when lib is open
   const canvasClass = [
-    'relative flex-1 transition-all duration-200',
+    'relative flex-1 transition-all duration-200 flex flex-col',
     libOpen ? 'ml-64' : '',
-    sidebarOpen && data ? 'mr-72' : '',
   ].join(' ');
+
+  const handleExploreEdge = (edge: { source: string; target: string }) => {
+    setExploreEdge(edge);
+    setExploreMode(true);
+  };
+
+  const extractPkgId = (id: string) => {
+    if (!id) return '';
+    let core = id.includes(':') ? id.split(':', 2)[1] : id;
+    if (core.startsWith('@')) {
+      const parts = core.split('@');
+      return '@' + parts[1];
+    }
+    return core.split('@')[0];
+  };
+
+  const renderNodeDetailsPanel = () => {
+    if (!selectedNode || !data) return null;
+
+    const nodeMeta = data.nodes.find((n: any) => n.id === selectedNode || n.name === selectedNode);
+    // Pre-process variables so they ignore version discrepancies between constraint regexes and edge resolution algorithms
+    const depthByPkg: Record<string, number> = {};
+    if (depthsData) Object.entries(depthsData).forEach(([k, v]) => { depthByPkg[extractPkgId(k)] = v as number; });
+
+    const libyearsByPkg: Record<string, number> = {};
+    if (libyearsData) Object.entries(libyearsData).forEach(([k, v]) => { libyearsByPkg[extractPkgId(k)] = v as number; });
+
+    const targetId = extractPkgId(selectedNode);
+
+    const localFanIn = data.edges.filter((e: any) => (e.target.id || e.target) === selectedNode).length;
+    const localFanOut = data.edges.filter((e: any) => (e.source.id || e.source) === selectedNode).length;
+
+    const depth = depthByPkg[targetId] ?? 0;
+    const libyears = libyearsByPkg[targetId];
+
+    return (
+      <div className="absolute top-0 right-0 bottom-0 w-80 bg-[#12121a]/95 backdrop-blur-xl border-l border-[#2a2a35] shadow-2xl flex flex-col z-50 shrink-0 transform-gpu transition-transform pointer-events-auto">
+        <div className="px-5 py-4 border-b border-[#2a2a35]">
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Selected Dependency</h3>
+            <button onClick={() => setSelectedNode(null)} className="text-gray-500 hover:text-gray-300">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <p className="text-sm font-mono font-bold text-indigo-400 break-words">{nodeMeta?.name || targetId}</p>
+          <p className="text-xs text-gray-500 font-mono mt-1">v{nodeMeta?.version || 'unknown'}</p>
+        </div>
+
+        <div className="p-5 flex-1 overflow-y-auto space-y-5">
+           <div className="grid grid-cols-2 gap-3">
+              <div className="bg-[#1a1a2e]/50 p-3 rounded-lg border border-white/5">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Fan-In</span>
+                <span className="text-xl font-bold text-emerald-400">{localFanIn}</span>
+              </div>
+              <div className="bg-[#1a1a2e]/50 p-3 rounded-lg border border-white/5">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Fan-Out</span>
+                <span className="text-xl font-bold text-blue-400">{localFanOut}</span>
+              </div>
+           </div>
+
+           <div className="bg-[#1a1a2e]/50 p-3 rounded-lg border border-white/5">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Path Depth</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold text-slate-200">{depth === 0 ? '0' : depth}</span>
+                <span className="text-[10px] text-slate-500 font-normal border border-slate-700 rounded px-1">{depth === 1 ? 'Direct' : depth === 0 ? 'Root' : 'Transitive'}</span>
+              </div>
+           </div>
+
+           <div className="bg-[#1a1a2e]/50 p-3 rounded-lg border border-white/5">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Libyears Debt</span>
+              <div className="flex items-center gap-2">
+                <span className={`text-xl font-bold ${libyears > 5 ? 'text-rose-400' : libyears > 1 ? 'text-amber-400' : libyears !== undefined ? 'text-emerald-400' : 'text-slate-600'}`}>
+                  {libyears !== undefined ? (libyears === 0 ? '0.0' : libyears.toFixed(1)) : '-'}
+                </span>
+                {libyears > 5 && <span className="bg-rose-500/20 text-rose-400 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Severe</span>}
+              </div>
+           </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="h-full flex flex-col bg-[#0a0a12] relative overflow-hidden">
@@ -107,7 +182,7 @@ export default function GraphViewer() {
           <Network className="w-5 h-5 text-indigo-400 mr-3" />
           <div>
             <h1 className="text-sm font-bold text-gray-100 leading-none">
-              {hasParams ? `${packageName} v${version}` : 'Graph Viewer'}
+              {hasParams ? `${packageName} v${version}` : 'Dependency Health Dashboard'}
             </h1>
             <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider font-semibold">
               {hasParams ? ecosystem : 'Awaiting Selection'}
@@ -118,7 +193,7 @@ export default function GraphViewer() {
         <div className="pointer-events-auto flex gap-2">
           {/* Library toggle */}
           <button
-            onClick={() => { setLibOpen(o => !o); setSidebarOpen(false); }}
+            onClick={() => { setLibOpen((o: boolean) => !o); }}
             className={`border shadow-sm px-3 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors ${
               libOpen
                 ? 'bg-indigo-900/30 border-indigo-500/30 text-indigo-400'
@@ -151,20 +226,23 @@ export default function GraphViewer() {
 
           {data && (
             <button
-              onClick={() => { setSidebarOpen(o => !o); setLibOpen(false); }}
+              onClick={() => {
+                  if (exploreMode) {
+                    setExploreMode(false);
+                    setExploreEdge(null);
+                    setSelectedNode(null);
+                 } else {
+                    setExploreMode(true);
+                 }
+              }}
               className={`bg-[#12121a] border shadow-sm px-3 py-2 rounded-lg font-medium text-sm flex items-center transition-colors gap-2 ${
-                sidebarOpen
+                exploreMode
                   ? 'border-indigo-500/30 text-indigo-400 bg-indigo-900/30'
                   : 'border-[#2a2a35] text-gray-300 hover:bg-[#1a1a2e]'
               }`}
             >
-              <PanelRight className="w-4 h-4" />
-              Edge Constraints
-              {data.edges.length > 0 && (
-                <span className="bg-indigo-900/40 text-indigo-400 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                  {data.edges.length}
-                </span>
-              )}
+              {exploreMode ? <ArrowLeft className="w-4 h-4" /> : <Network className="w-4 h-4" />}
+              {exploreMode ? 'Back to Dashboard' : 'Explore Topology'}
             </button>
           )}
 
@@ -179,11 +257,11 @@ export default function GraphViewer() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden pt-20">
 
         {/* ── DB Library Panel (left) ────────────────────────────────── */}
         {libOpen && (
-          <div className="absolute top-0 left-0 bottom-0 w-64 bg-[#12121a] border-r border-[#2a2a35] shadow-md flex flex-col z-10">
+          <div className="absolute top-0 left-0 bottom-0 pt-20 w-64 bg-[#12121a] border-r border-[#2a2a35] shadow-md flex flex-col z-20">
             <div className="px-4 py-3 border-b border-white/5 shrink-0">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
@@ -206,7 +284,7 @@ export default function GraphViewer() {
                   value={libSearch}
                   onChange={e => { setLibSearch(e.target.value); setLibPage(1); }}
                   placeholder="Filter packages…"
-                  className="w-full pl-8 pr-3 py-1.5 text-xs border border-[#2a2a35] rounded-md focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className="w-full pl-8 pr-3 py-1.5 text-xs text-white bg-black border border-[#2a2a35] rounded-md focus:outline-none focus:ring-1 focus:ring-blue-400"
                 />
               </div>
               <p className="text-[10px] text-gray-500 mt-1.5">
@@ -218,13 +296,13 @@ export default function GraphViewer() {
               {libPageSlice.length === 0 ? (
                 <p className="text-xs text-gray-500 text-center py-10">Nothing in DB yet.</p>
               ) : (
-                libPageSlice.map(pkg => {
+                libPageSlice.map((pkg: any) => {
                   const isCurrent = pkg.name === packageName && pkg.version === version;
                   return (
                     <button
                       key={`${pkg.ecosystem}:${pkg.name}`}
                       onClick={() => handleJump(pkg.name, pkg.version)}
-                      className={`w-full text-left px-4 py-2.5 border-b border-gray-50 flex items-center justify-between group transition-colors ${
+                      className={`w-full text-left px-4 py-2.5 border-b border-gray-50/10 flex items-center justify-between group transition-colors ${
                         isCurrent ? 'bg-indigo-900/30' : 'hover:bg-[#1a1a2e]'
                       }`}
                     >
@@ -255,7 +333,7 @@ export default function GraphViewer() {
           </div>
         )}
 
-        {/* Graph Canvas */}
+        {/* Dynamic Content Area */}
         <div className={canvasClass}>
           {!hasParams && (
             <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -279,7 +357,7 @@ export default function GraphViewer() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-gray-100 flex items-center">
                     <Loader2 className="w-5 h-5 text-indigo-400 animate-spin mr-3" />
-                    Resolving Graph
+                    Resolving Supply Chain
                   </h2>
                   {progress && (
                     <span className="text-sm font-bold text-indigo-400">{displayPct}%</span>
@@ -321,7 +399,7 @@ export default function GraphViewer() {
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0a12]/80 z-20">
               <div className="bg-[#12121a] p-8 rounded-xl shadow-sm border border-red-900/50 max-w-md text-center">
                 <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                <h2 className="text-xl font-bold text-gray-100 mb-2">Graph Resolution Failed</h2>
+                <h2 className="text-xl font-bold text-gray-100 mb-2">Supply Chain Resolution Failed</h2>
                 <p className="text-red-400 mb-6 text-sm">
                   {(error as any)?.response?.data?.detail || error.message}
                 </p>
@@ -332,91 +410,44 @@ export default function GraphViewer() {
             </div>
           )}
 
-          {hasParams && data && !isLoading && !error && (
-            <GraphCanvas data={data} onEdgeSelect={setSelectedEdge} />
+          {/* Render Dashboard if not exploring */}
+          {hasParams && data && !isLoading && !error && !exploreMode && (
+            <DependencyHealthDashboard
+              data={data}
+              metrics={metricsData}
+              depths={depthsData}
+              libyearsBreakdown={libyearsData}
+              onExploreEdge={handleExploreEdge}
+            />
           )}
-        </div>
 
-        {/* ── Edge Constraints Sidebar (right) ──────────────────────── */}
-        {data && sidebarOpen && (
-          <div className="absolute top-0 right-0 bottom-0 w-72 bg-[#12121a] border-l border-[#2a2a35] shadow-md flex flex-col z-10">
-            <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between shrink-0">
-              <div>
-                <h2 className="text-sm font-bold text-gray-100">Edge Constraints</h2>
-                <p className="text-xs text-gray-500 mt-0.5">{data.edges.length} dependencies</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1.5 text-[10px] font-semibold">
-                  <span className="bg-red-900/40 text-red-400 px-1.5 py-0.5 rounded-full">
-                    ⚠️ {data.edges.filter(e => !e.constraint).length}
-                  </span>
-                  <span className="bg-green-900/40 text-green-400 px-1.5 py-0.5 rounded-full">
-                    ✓ {data.edges.filter(e => !!e.constraint && !e.constraint.startsWith('==')).length}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="ml-1 text-gray-500 hover:text-gray-500 hover:bg-[#2a2a35] rounded p-0.5 transition-colors"
-                  title="Close"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-y-auto flex-1 p-2 space-y-1.5">
-              {data.edges.length === 0 ? (
-                <p className="text-gray-500 text-xs text-center py-8">No dependencies found.</p>
-              ) : (
-                data.edges.map((edge, i) => {
-                  const isSelected = selectedEdge?.source === edge.source && selectedEdge?.target === edge.target;
-                  return (
-                    <div
-                      key={i}
-                      className={`rounded-lg p-3 border transition-colors ${
-                        isSelected ? 'border-indigo-500/30 bg-indigo-900/30' : 'border-white/5 bg-[#1a1a2e] hover:border-[#2a2a35]'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[11px] font-medium text-gray-200 truncate font-mono">{edge.target}</p>
-                          <p className="text-[10px] text-gray-500 truncate mt-0.5">from {edge.source}</p>
-                        </div>
-                        <span className={`shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-full font-semibold ${getConstraintBadge(edge.constraint || '')}`}>
-                          {getConstraintIcon(edge.constraint || '')}
+          {/* Render GraphCanvas if exploring */}
+          {hasParams && data && !isLoading && !error && exploreMode && (
+             <div className="absolute inset-0 flex flex-col bg-[#0a0a12]">
+               <div className="bg-indigo-900/20 text-indigo-200 border-b border-indigo-500/20 px-6 py-3 flex justify-between items-center z-10 shrink-0 shadow-sm backdrop-blur">
+                  <div className="flex items-center gap-3">
+                    <Network className="w-5 h-5 text-indigo-400" />
+                    <span className="font-bold tracking-wide">Targeted Network Visualizer</span>
+                    {exploreEdge && (
+                      <>
+                        <span className="w-px h-5 bg-white/20 block mx-2"></span>
+                        <span className="text-xs font-mono bg-black/40 px-2 py-0.5 rounded-md border border-white/5 shadow-inner">
+                           Focus Edge: <span className="text-emerald-400">{exploreEdge.source}</span> → <span className="text-blue-400">{exploreEdge.target}</span>
                         </span>
-                      </div>
-                      {edge.constraint && (
-                        <code className="block mt-1.5 text-[10px] text-gray-500 bg-[#12121a] rounded border border-white/5 px-1.5 py-0.5 truncate">
-                          {edge.constraint}
-                        </code>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
+                      </>
+                    )}
+                  </div>
+               </div>
+               <div className="flex-1 relative flex">
+                 <div className="flex-1 relative">
+                   <GraphCanvas data={data} onEdgeSelect={setSelectedEdge} onNodeSelect={setSelectedNode} />
+                 </div>
+                 {renderNodeDetailsPanel()}
+               </div>
+             </div>
+          )}
 
-            {/* Legend */}
-            <div className="border-t border-white/5 p-3 shrink-0 space-y-1">
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">Legend</p>
-              <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                <span className="bg-red-900/40 text-red-400 px-1.5 py-0.5 rounded-full font-semibold">⚠️</span>
-                <span>Unconstrained — highest update risk</span>
-              </div>
-              <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                <span className="bg-amber-900/40 text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">🔒</span>
-                <span>Pinned — brittle, blocks patches</span>
-              </div>
-              <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                <span className="bg-green-900/40 text-green-400 px-1.5 py-0.5 rounded-full font-semibold">✓</span>
-                <span>Range-bounded — healthy</span>
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

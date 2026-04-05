@@ -1,11 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
-import CytoscapeComponent from 'react-cytoscapejs';
-import cytoscape from 'cytoscape';
+import { useState } from 'react';
+import FluidGraphCanvas from './FluidGraphCanvas';
 import type { TransitiveGraphResponse } from '../types/api';
 
 interface GraphCanvasProps {
   data: TransitiveGraphResponse;
   onEdgeSelect?: (edge: { source: string; target: string } | null) => void;
+  onNodeSelect?: (nodeId: string | null) => void;
 }
 
 interface EdgeTooltip {
@@ -16,172 +16,50 @@ interface EdgeTooltip {
   y: number;
 }
 
-export default function GraphCanvas({ data, onEdgeSelect }: GraphCanvasProps) {
-  const cyRef = useRef<cytoscape.Core | null>(null);
+export default function GraphCanvas({ data, onEdgeSelect, onNodeSelect }: GraphCanvasProps) {
   const [tooltip, setTooltip] = useState<EdgeTooltip | null>(null);
 
-  // Translate the strictly typed backend generic models directly into Cytoscape abstract element maps
-  const elements = useMemo(() => {
-    const nodes = data.nodes.map(node => ({
-      data: {
-        id: node.id,
-        label: node.label || node.package,
-        isRoot: node.id === data.root,
-      }
-    }));
-
-    const edges = data.edges.map(edge => ({
-      data: {
-        source: edge.source,
-        target: edge.target,
-        constraint: edge.constraint || 'unconstrained',
-      }
-    }));
-
-    return [...nodes, ...edges] as cytoscape.ElementDefinition[];
-  }, [data]);
-
-  // Apply default styling dynamically separating root elements and generic bounds
-  const stylesheet = [
-    {
-      selector: 'node',
-      style: {
-        'label': 'data(label)',
-        'font-family': 'Inter, sans-serif',
-        'font-size': '10px',
-        'text-valign': 'center',
-        'text-halign': 'center',
-        'background-color': '#94a3b8',
-        'color': '#111827',
-        'text-outline-width': 1.5,
-        'text-outline-color': '#fff',
-        'width': 40,
-        'height': 40,
-      }
-    },
-    {
-      selector: 'node[?isRoot]',
-      style: {
-        'background-color': '#3b82f6',
-        'width': 70,
-        'height': 70,
-        'font-weight': 'bold',
-        'font-size': '12px',
-        'color': '#ffffff',
-        'text-outline-color': '#2563eb',
-        'z-index': 100
-      }
-    },
-    {
-      selector: 'edge',
-      style: {
-        'width': 6,                    // Wide enough to hover/click reliably
-        'line-color': '#cbd5e1',
-        'target-arrow-color': '#cbd5e1',
-        'target-arrow-shape': 'triangle',
-        'curve-style': 'bezier',
-        'opacity': 0.9,
-      }
-    },
-    {
-      // Highlight the hovered edge so users know it's interactive
-      selector: 'edge:active, edge.hovered',
-      style: {
-        'line-color': '#3b82f6',
-        'target-arrow-color': '#3b82f6',
-        'width': 2.5,
-      }
-    }
-  ] as any;
-
-  // Wire up Cytoscape instance events for edge hover tooltip
-  const handleCyInit = (cy: cytoscape.Core) => {
-    cyRef.current = cy;
-
-    cy.on('mouseover', 'edge', (evt) => {
-      const edge = evt.target;
-      const renderedPos = evt.renderedPosition;
-      edge.addClass('hovered');
-      setTooltip({
-        source: edge.data('source'),
-        target: edge.data('target'),
-        constraint: edge.data('constraint'),
-        x: renderedPos.x,
-        y: renderedPos.y,
-      });
-    });
-
-    cy.on('mouseout', 'edge', (evt) => {
-      evt.target.removeClass('hovered');
-      setTooltip(null);
-    });
-
-    // Click/tap on edge to pin the tooltip (useful on touch screens and for testing)
-    cy.on('tap', 'edge', (evt) => {
-      const edge = evt.target;
-      const renderedPos = evt.renderedPosition;
-      cy.elements('edge').removeClass('hovered');
-      edge.addClass('hovered');
-      setTooltip({
-        source: edge.data('source'),
-        target: edge.data('target'),
-        constraint: edge.data('constraint'),
-        x: renderedPos.x,
-        y: renderedPos.y,
-      });
-      onEdgeSelect?.({ source: edge.data('source'), target: edge.data('target') });
-    });
-
-    // Tap on background to dismiss pinned tooltip
-    cy.on('tap', (evt) => {
-      if (evt.target === cy) {
-        cy.elements('edge').removeClass('hovered');
-        setTooltip(null);
-        onEdgeSelect?.(null);
-      }
-    });
-
-    // Clear on pan/zoom
-    cy.on('pan zoom', () => {
-      setTooltip(null);
-    });
-  };
-
   // Classify the constraint severity for color coding
-  const getConstraintBadgeStyle = (constraint: string): string => {
-    if (!constraint || constraint === 'unconstrained') return 'bg-red-900/40 text-red-800 border border-red-900/50';
-    if (constraint.startsWith('==') || constraint.includes('===')) return 'bg-amber-900/40 text-amber-800 border border-amber-200';
-    return 'bg-green-900/40 text-green-800 border border-green-200';
+  const getConstraintBadgeStyle = (constraint?: string): string => {
+    if (!constraint || constraint === 'unconstrained') return 'bg-red-900/40 text-red-400 border border-red-900/50';
+    if (constraint.startsWith('==') || constraint.includes('===')) return 'bg-amber-900/40 text-amber-400 border border-amber-500/20';
+    return 'bg-green-900/40 text-green-400 border border-green-500/20';
   };
 
-  const getConstraintLabel = (constraint: string): string => {
+  const getConstraintLabel = (constraint?: string): string => {
     if (!constraint || constraint === 'unconstrained') return 'Unconstrained ⚠️';
     if (constraint.startsWith('==') || constraint.includes('===')) return 'Pinned 🔒';
     return 'Range Bounded ✓';
   };
 
+  const handleEdgeHover = (link: any | null, x: number, y: number) => {
+    if (link) {
+      setTooltip({
+        source: link.source.id || link.source,
+        target: link.target.id || link.target,
+        constraint: link.constraint,
+        x,
+        y
+      });
+    } else {
+      setTooltip(null);
+    }
+  };
+
   return (
-    <div className="w-full h-full relative cursor-grab active:cursor-grabbing">
-      <CytoscapeComponent
-        elements={elements}
-        style={{ width: '100%', height: '100%' }}
-        stylesheet={stylesheet}
-        layout={{
-          name: 'cose',
-          padding: 50,
-          animate: false,
-          nodeRepulsion: 400000,
-          idealEdgeLength: 100,
-        }}
-        minZoom={0.1}
-        maxZoom={3.5}
-        cy={handleCyInit}
+    <div className="w-full h-full relative">
+      <FluidGraphCanvas
+        data={data as any}
+        mode="dependency"
+        onEdgeSelect={onEdgeSelect}
+        onNodeSelect={onNodeSelect}
+        onEdgeHover={handleEdgeHover}
       />
 
       {/* Edge hover tooltip */}
       {tooltip && (
         <div
-          className="absolute z-20 pointer-events-none"
+          className="absolute z-50 pointer-events-none"
           style={{ left: tooltip.x + 16, top: tooltip.y - 8 }}
         >
           <div className="bg-[#12121a] border border-[#2a2a35] shadow-lg rounded-lg p-3 text-xs min-w-[180px]">
@@ -200,7 +78,7 @@ export default function GraphCanvas({ data, onEdgeSelect }: GraphCanvasProps) {
               <div className="border-t border-white/5 pt-1.5 mt-1.5">
                 <span className="text-gray-500 block mb-1">Constraint:</span>
                 <span className={`font-mono text-xs px-2 py-0.5 rounded-full font-semibold ${getConstraintBadgeStyle(tooltip.constraint)}`}>
-                  {tooltip.constraint}
+                  {tooltip.constraint || 'unconstrained'}
                 </span>
               </div>
               <div className="text-[10px] text-gray-500 pt-0.5">
@@ -211,10 +89,10 @@ export default function GraphCanvas({ data, onEdgeSelect }: GraphCanvasProps) {
         </div>
       )}
 
-      {/* Hint badge — only shown when graph has edges */}
+      {/* Hint badge */}
       {data.edges.length > 0 && (
-        <div className="absolute bottom-4 right-4 bg-[#12121a]/80 backdrop-blur-sm border border-[#2a2a35] rounded-md px-3 py-1.5 text-xs text-gray-500 pointer-events-none shadow-sm">
-          Hover over an edge to inspect version constraint
+        <div className="absolute bottom-4 right-4 bg-[#12121a]/80 backdrop-blur-sm border border-[#2a2a35] rounded-md px-3 py-1.5 text-xs text-gray-500 pointer-events-none shadow-sm z-10">
+          Hover over edge particles to inspect version constraints
         </div>
       )}
     </div>

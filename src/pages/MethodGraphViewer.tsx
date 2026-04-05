@@ -4,8 +4,9 @@ import MetricTooltip from '../components/MetricTooltip';
 import { METHOD_METRICS } from '../data/metricDefinitions';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ArrowLeft, Loader2, AlertCircle, PlayCircle, Network, X } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, PlayCircle, Network, X, BoxSelect } from 'lucide-react';
 import MethodCallGraph from '../components/MethodCallGraph';
+import MethodHealthDashboard from '../components/MethodHealthDashboard';
 
 const fetchGraph = async (slug: string) => {
   try {
@@ -26,6 +27,7 @@ export default function MethodGraphViewer() {
   const isMetaRedirect = searchParams.get('meta_redirect') === 'true';
   const originalSlug = searchParams.get('original_slug');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [exploreMode, setExploreMode] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const { data, isLoading, error } = useQuery({
@@ -49,6 +51,53 @@ export default function MethodGraphViewer() {
     if (!selectedNodeId || !data) return null;
     return data.nodes.find((n: any) => n.id === selectedNodeId);
   }, [selectedNodeId, data]);
+
+  // Compute the 2-degree local neighborhood directly from the in-memory graph
+  const focusedGraphData = useMemo(() => {
+    if (!data || !selectedNodeId) return null;
+
+    // 1st degree
+    const neighbors = new Set<string>();
+    neighbors.add(selectedNodeId);
+    
+    // Create fast lookup
+    const edgesBySource: Record<string, any[]> = {};
+    const edgesByTarget: Record<string, any[]> = {};
+    data.edges.forEach((e: any) => {
+      const src = e.source_id || e.source?.id || e.source;
+      const tgt = e.target_id || e.target?.id || e.target;
+      if (!edgesBySource[src]) edgesBySource[src] = [];
+      if (!edgesByTarget[tgt]) edgesByTarget[tgt] = [];
+      edgesBySource[src].push(e);
+      edgesByTarget[tgt].push(e);
+    });
+
+    // BFS Degrees
+    let currentLevel = new Set([selectedNodeId]);
+    for (let depth = 0; depth < 2; depth++) {
+       const nextLevel = new Set<string>();
+       for (const n of currentLevel) {
+          (edgesBySource[n] || []).forEach(e => nextLevel.add(e.target_id || e.target?.id || e.target));
+          (edgesByTarget[n] || []).forEach(e => nextLevel.add(e.source_id || e.source?.id || e.source));
+       }
+       for (const n of nextLevel) neighbors.add(n);
+       currentLevel = nextLevel;
+    }
+
+    const filteredNodes = data.nodes.filter((n: any) => neighbors.has(n.id));
+    const filteredEdges = data.edges.filter((e: any) => {
+       const src = e.source_id || e.source?.id || e.source;
+       const tgt = e.target_id || e.target?.id || e.target;
+       return neighbors.has(src) && neighbors.has(tgt);
+    });
+
+    return {
+      nodes: filteredNodes,
+      edges: filteredEdges,
+      node_count: filteredNodes.length,
+      edge_count: filteredEdges.length
+    };
+  }, [data, selectedNodeId]);
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a12]">
@@ -132,8 +181,33 @@ export default function MethodGraphViewer() {
             </div>
           )}
 
-          {project && data && !isLoading && !error && data.nodes.length > 0 && (
-              <MethodCallGraph data={data} highlightedNodes={highlightedNodes} onNodeSelect={setSelectedNodeId} />
+           {project && data && !isLoading && !error && data.nodes.length > 0 && (
+             <div className="absolute inset-0">
+               {!exploreMode ? (
+                 <MethodHealthDashboard 
+                   data={data} 
+                   onMethodSelect={setSelectedNodeId} 
+                 />
+               ) : (
+                 <div className="relative w-full h-full">
+                    {/* Floating Back to Overview Button */}
+                    <div className="absolute top-4 left-4 z-50">
+                      <button 
+                         onClick={() => {
+                           setExploreMode(false);
+                           setSelectedNodeId(null);
+                         }}
+                         className="flex items-center gap-2 bg-[#12121a]/90 backdrop-blur border border-white/10 px-4 py-2 rounded-lg text-sm font-bold text-slate-300 hover:text-white hover:bg-[#1a1a24] transition-all shadow-xl"
+                      >
+                         <BoxSelect className="w-4 h-4 text-indigo-400" />
+                         Back to Methods Dashboard
+                      </button>
+                    </div>
+                    {/* Render standard force graph but only fed with the filtered Local Subgraph */}
+                    <MethodCallGraph data={focusedGraphData!} highlightedNodes={highlightedNodes} onNodeSelect={(id) => id ? setSelectedNodeId(id) : null} />
+                 </div>
+               )}
+             </div>
           )}
 
           {project && data && !isLoading && !error && data.nodes.length === 0 && (

@@ -19,6 +19,28 @@ export const getPackageDetails = async (
   return response.data;
 };
 
+export const getTransitiveDepths = async (
+  ecosystem: string,
+  packageName: string,
+  version: string
+): Promise<Record<string, number>> => {
+  const response = await apiClient.get<Record<string, number>>(
+    `/dependencies/${ecosystem}/${encodeURIComponent(packageName)}/${encodeURIComponent(version)}/depths`
+  );
+  return response.data;
+};
+
+export const getTransitiveLibyearsBreakdown = async (
+  ecosystem: string,
+  packageName: string,
+  version: string
+): Promise<Record<string, number>> => {
+  const response = await apiClient.get<Record<string, number>>(
+    `/dependencies/${ecosystem}/${encodeURIComponent(packageName)}/${encodeURIComponent(version)}/libyears`
+  );
+  return response.data;
+};
+
 export const getTransitiveGraphStream = async (
   ecosystem: string,
   packageName: string,

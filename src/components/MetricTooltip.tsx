@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Info } from 'lucide-react';
 
@@ -18,7 +18,7 @@ interface MetricTooltipProps {
 
 export default function MetricTooltip({ metric, children }: MetricTooltipProps) {
   const [visible, setVisible] = useState(false);
-  const [coords, setCoords] = useState({ top: 0, left: 0, position: 'top' as 'top' | 'bottom' });
+  const [coords, setCoords] = useState({ top: 0, left: 0, position: 'top' as 'top' | 'bottom', alignRight: false });
   const triggerRef = useRef<HTMLSpanElement>(null);
 
   const handleMouseEnter = () => {
@@ -27,10 +27,23 @@ export default function MetricTooltip({ metric, children }: MetricTooltipProps) 
       const isTop = rect.top < 350;
       const pos = isTop ? 'bottom' : 'top';
       
+      const tooltipWidth = 288; // 72 spacing units * 4px
+      const windowWidth = window.innerWidth;
+      
+      let left = rect.left;
+      let alignRight = false;
+      
+      if (left + tooltipWidth > windowWidth - 20) {
+        // Clamp to right side, align tooltip's right edge to the trigger's right edge
+        left = rect.right - tooltipWidth;
+        alignRight = true;
+      }
+      
       setCoords({
         top: pos === 'top' ? rect.top - 10 : rect.bottom + 10,
-        left: rect.left,
-        position: pos
+        left,
+        position: pos,
+        alignRight
       });
     }
     setVisible(true);
@@ -61,11 +74,11 @@ export default function MetricTooltip({ metric, children }: MetricTooltipProps) 
         >
           {/* Arrow */}
           <div
-            className={`absolute w-2.5 h-2.5 bg-[#1a1a2e] border-indigo-500/30 rotate-45 left-4 pointer-events-none ${
+            className={`absolute w-2.5 h-2.5 bg-[#1a1a2e] border-indigo-500/30 rotate-45 pointer-events-none ${
               coords.position === 'top'
                 ? 'bottom-[-5px] border-b border-r'
                 : 'top-[-5px] border-t border-l'
-            }`}
+            } ${coords.alignRight ? 'right-4' : 'left-4'}`}
           />
 
           <div className="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-1.5">
