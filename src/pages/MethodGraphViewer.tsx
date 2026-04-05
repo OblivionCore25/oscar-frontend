@@ -335,23 +335,9 @@ export default function MethodGraphViewer() {
                 </div>
               )}
 
-              {/* Inline Graph Preview */}
+              {/* Action Button */}
               {!exploreMode && previewGraphData && (
                 <div className="mt-8">
-                  <h3 className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-2 flex justify-between items-center">
-                    <span>Neighborhood Preview (1°)</span>
-                    <span className="text-[9px] font-mono text-slate-600 bg-slate-800 px-1.5 py-0.5 rounded">
-                      {previewGraphData.node_count} nodes
-                    </span>
-                  </h3>
-                  <div className="h-48 w-full border border-[#2a2a35] rounded-xl overflow-hidden bg-[#050508] relative mb-4">
-                     <MethodCallGraph 
-                        data={previewGraphData} 
-                        hideLegend={true}
-                        onNodeSelect={(id) => id && setSelectedNodeId(id)} 
-                     />
-                     {/* Floating mini overlay to ensure clicking background doesn't do weird things, or just let users interact! */}
-                  </div>
                   <button 
                     onClick={() => setExploreMode(true)}
                     className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-lg"
