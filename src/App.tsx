@@ -10,6 +10,7 @@ import HotspotDashboard from './pages/HotspotDashboard';
 import CommunityView from './pages/CommunityView';
 import MethodGraphViewer from './pages/MethodGraphViewer';
 import ResearchConsole from './pages/ResearchConsole';
+import MetricsGlossary from './pages/MetricsGlossary';
 
 // Global HTTP Cache Client
 const queryClient = new QueryClient({
@@ -35,6 +36,7 @@ function App() {
             <Route path="/methods/hotspots" element={<HotspotDashboard />} />
             <Route path="/methods/communities" element={<CommunityView />} />
             <Route path="/methods/graph" element={<MethodGraphViewer />} />
+            <Route path="/glossary" element={<MetricsGlossary />} />
           </Routes>
         </Layout>
       </BrowserRouter>

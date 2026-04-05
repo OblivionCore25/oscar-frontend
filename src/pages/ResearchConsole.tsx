@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { ArrowLeft, Loader2, AlertCircle, Microscope, Box, Database, Activity, GitCommit, GitPullRequest } from 'lucide-react';
 import type { PackageDetailsResponse } from '../types/api';
+import MetricTooltip from '../components/MetricTooltip';
+import { SUPPLY_CHAIN_METRICS, METHOD_METRICS } from '../data/metricDefinitions';
 
 export default function ResearchConsole() {
   const [searchParams] = useSearchParams();
@@ -147,8 +149,8 @@ export default function ResearchConsole() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* SUPPLY CHAIN PANEL */}
-            <div className="bg-[#12121a] rounded-2xl border border-[#2a2a35] shadow-xl overflow-hidden backdrop-blur-sm shadow-fuchsia-900/5">
-              <div className="bg-gradient-to-r from-[#1c1c28] to-[#12121a] px-6 py-4 border-b border-[#2a2a35] flex items-center">
+            <div className="bg-[#12121a] rounded-2xl border border-[#2a2a35] shadow-xl backdrop-blur-sm shadow-fuchsia-900/5">
+              <div className="bg-gradient-to-r from-[#1c1c28] to-[#12121a] px-6 py-4 border-b border-[#2a2a35] flex items-center rounded-t-2xl">
                  <GitPullRequest className="w-5 h-5 text-indigo-400 mr-2" />
                  <h2 className="font-bold text-gray-100 tracking-wide text-sm uppercase">Supply Chain (Dependency Obs.)</h2>
               </div>
@@ -160,41 +162,41 @@ export default function ResearchConsole() {
               ) : m ? (
                  <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4 font-mono text-sm">
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <span className="text-gray-500">Fan-In</span>
+                       <MetricTooltip metric={SUPPLY_CHAIN_METRICS.fanIn}><span className="text-gray-500">Fan-In</span></MetricTooltip>
                        <span className="text-gray-100">{m.fanIn.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <span className="text-gray-500">Fan-Out</span>
+                       <MetricTooltip metric={SUPPLY_CHAIN_METRICS.fanOut}><span className="text-gray-500">Fan-Out</span></MetricTooltip>
                        <span className="text-gray-100">{m.fanOut.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <span className="text-gray-500">Bottleneck</span>
+                       <MetricTooltip metric={SUPPLY_CHAIN_METRICS.bottleneck}><span className="text-gray-500">Bottleneck</span></MetricTooltip>
                        <span className="text-amber-400 font-bold">{m.bottleneckScore.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <span className="text-gray-500">Blast Radius</span>
+                       <MetricTooltip metric={SUPPLY_CHAIN_METRICS.blastRadius}><span className="text-gray-500">Blast Radius</span></MetricTooltip>
                        <span className="text-indigo-400">{m.blastRadius?.toLocaleString() || 0}</span>
                     </div>
                     
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <span className="text-gray-500">PageRank</span>
+                       <MetricTooltip metric={SUPPLY_CHAIN_METRICS.pageRank}><span className="text-gray-500">PageRank</span></MetricTooltip>
                        <span className="text-gray-100">{(m.pageRank || 0).toFixed(6)}</span>
                     </div>
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <span className="text-gray-500">Eigenvector</span>
+                       <MetricTooltip metric={SUPPLY_CHAIN_METRICS.eigenvector}><span className="text-gray-500">Eigenvector</span></MetricTooltip>
                        <span className="text-purple-400 font-bold">{(m.eigenvectorCentrality || 0).toFixed(6)}</span>
                     </div>
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <span className="text-gray-500">Betweenness</span>
+                       <MetricTooltip metric={SUPPLY_CHAIN_METRICS.betweenness}><span className="text-gray-500">Betweenness</span></MetricTooltip>
                        <span className="text-gray-100">{(m.betweennessCentrality || 0).toFixed(6)}</span>
                     </div>
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <span className="text-gray-500">Closeness</span>
+                       <MetricTooltip metric={SUPPLY_CHAIN_METRICS.closeness}><span className="text-gray-500">Closeness</span></MetricTooltip>
                        <span className="text-gray-100">{(m.closenessCentrality || 0).toFixed(6)}</span>
                     </div>
                     
                     <div className="flex justify-between items-center pb-2 col-span-2">
-                       <span className="text-gray-500">Instability (I)</span>
+                       <MetricTooltip metric={SUPPLY_CHAIN_METRICS.instability}><span className="text-gray-500">Instability (I)</span></MetricTooltip>
                        <span className="text-rose-400">{I.toFixed(2)}</span>
                     </div>
                  </div>
@@ -202,8 +204,8 @@ export default function ResearchConsole() {
             </div>
 
             {/* INTERNAL ARCHITECTURE PANEL */}
-            <div className="bg-[#12121a] rounded-2xl border border-[#2a2a35] shadow-xl overflow-hidden backdrop-blur-sm shadow-emerald-900/5">
-              <div className="bg-gradient-to-r from-[#1c1c28] to-[#12121a] px-6 py-4 border-b border-[#2a2a35] flex items-center justify-between">
+            <div className="bg-[#12121a] rounded-2xl border border-[#2a2a35] shadow-xl backdrop-blur-sm shadow-emerald-900/5">
+              <div className="bg-gradient-to-r from-[#1c1c28] to-[#12121a] px-6 py-4 border-b border-[#2a2a35] flex items-center justify-between rounded-t-2xl">
                  <div className="flex items-center">
                    <Box className="w-5 h-5 text-emerald-400 mr-2" />
                    <h2 className="font-bold text-gray-100 tracking-wide text-sm uppercase">Internal Arch (Method Obs.)</h2>
@@ -234,29 +236,29 @@ export default function ResearchConsole() {
               ) : (
                  <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4 font-mono text-sm">
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <span className="text-gray-500">Methods</span>
+                       <MetricTooltip metric={METHOD_METRICS.methods}><span className="text-gray-500">Methods</span></MetricTooltip>
                        <span className="text-gray-100">{metaData.method_count.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <span className="text-gray-500">Classes</span>
+                       <MetricTooltip metric={METHOD_METRICS.classes}><span className="text-gray-500">Classes</span></MetricTooltip>
                        <span className="text-gray-100">{metaData.class_count.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <span className="text-gray-500">Modules</span>
+                       <MetricTooltip metric={METHOD_METRICS.modules}><span className="text-gray-500">Modules</span></MetricTooltip>
                        <span className="text-gray-100">{metaData.module_count.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <span className="text-gray-500">Edge Count</span>
+                       <MetricTooltip metric={METHOD_METRICS.edgeCount}><span className="text-gray-500">Edge Count</span></MetricTooltip>
                        <span className="text-emerald-400 font-bold">{metaData.edge_count.toLocaleString()}</span>
                     </div>
                     
                     <div className="flex justify-between items-center border-b border-white/5 pb-2 col-span-2">
-                       <span className="text-gray-500">Resolution Rate</span>
+                       <MetricTooltip metric={METHOD_METRICS.resolutionRate}><span className="text-gray-500">Resolution Rate</span></MetricTooltip>
                        <span className="text-gray-100">{(metaData.resolution_rate * 100).toFixed(1)}%</span>
                     </div>
 
                     <div className="flex justify-between items-center border-b border-white/5 pb-2 col-span-2">
-                       <span className="text-gray-500">Top Hotspot</span>
+                       <MetricTooltip metric={METHOD_METRICS.topHotspot}><span className="text-gray-500">Top Hotspot</span></MetricTooltip>
                        <span className="text-rose-400 truncate max-w-[200px]" title={hotspots?.[0]?.method.name}>
                          {hotspots?.[0]?.method.name || "N/A"} <span className="opacity-50 text-xs">(risk: {hotspots?.[0]?.composite_risk ? (hotspots[0].composite_risk > 1000 ? (hotspots[0].composite_risk/1000).toFixed(1)+'k' : Math.round(hotspots[0].composite_risk)) : '0'})</span>
                        </span>
@@ -267,11 +269,11 @@ export default function ResearchConsole() {
                     </div>
                     
                     <div className="flex justify-between items-center pb-2">
-                       <span className="text-gray-500">Orphan Ratio</span>
+                       <MetricTooltip metric={METHOD_METRICS.orphanRatio}><span className="text-gray-500">Orphan Ratio</span></MetricTooltip>
                        <span className="text-amber-400">~{orphanRatio}%</span>
                     </div>
                     <div className="flex justify-between items-center pb-2">
-                       <span className="text-gray-500">Communities</span>
+                       <MetricTooltip metric={METHOD_METRICS.communities}><span className="text-gray-500">Communities</span></MetricTooltip>
                        <span className="text-gray-100">{communities ? Object.keys(communities).length : 0}</span>
                     </div>
                  </div>
@@ -283,13 +285,13 @@ export default function ResearchConsole() {
           <div className="bg-gradient-to-r from-indigo-900/20 to-purple-900/20 rounded-2xl border border-indigo-500/20 p-6 shadow-xl backdrop-blur-md flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-indigo-500/20">
              <div className="flex-1 p-4 flex flex-col items-center justify-center text-center">
                 <Activity className="w-8 h-8 text-rose-400 mb-2" />
-                <div className="text-xs font-bold tracking-widest text-indigo-400 uppercase mb-1">Zone Analysis</div>
+                <MetricTooltip metric={SUPPLY_CHAIN_METRICS.zoneAnalysis}><div className="text-xs font-bold tracking-widest text-indigo-400 uppercase mb-1">Zone Analysis</div></MetricTooltip>
                 <div className="font-mono text-gray-200">I={I.toFixed(2)}, A={A} <span className="text-rose-400 ml-2">→ {zone}</span></div>
              </div>
              
              <div className="flex-1 p-4 flex flex-col items-center justify-center text-center">
                 <GitCommit className={`w-8 h-8 ${m?.libyears && m.libyears > 5 ? "text-rose-400" : (m?.libyears && m.libyears > 1 ? "text-amber-400" : "text-emerald-400")} mb-2`} />
-                <div className="text-xs font-bold tracking-widest text-indigo-400 uppercase mb-1">Libyears (Tech Lag)</div>
+                <MetricTooltip metric={SUPPLY_CHAIN_METRICS.libyears}><div className="text-xs font-bold tracking-widest text-indigo-400 uppercase mb-1">Libyears (Tech Lag)</div></MetricTooltip>
                 <div className="font-mono text-gray-200">
                   {m?.libyears !== undefined ? <span className="font-bold text-white">{m.libyears} yrs</span> : <span className="opacity-50 italic">N/A</span>}
                 </div>
@@ -297,7 +299,7 @@ export default function ResearchConsole() {
              
              <div className="flex-1 p-4 flex flex-col items-center justify-center text-center">
                 <GitPullRequest className={`w-8 h-8 ${m?.diamondCount && m.diamondCount > 0 ? "text-rose-400" : "text-blue-400"} mb-2`} />
-                <div className="text-xs font-bold tracking-widest text-indigo-400 uppercase mb-1">Transitive Chain</div>
+                <MetricTooltip metric={SUPPLY_CHAIN_METRICS.transitiveDepth}><div className="text-xs font-bold tracking-widest text-indigo-400 uppercase mb-1">Transitive Chain</div></MetricTooltip>
                 <div className="font-mono text-gray-200 flex flex-col items-center text-sm">
                   <div><span className="font-bold text-white">{m?.transitiveDepth || 0}</span> <span className="text-gray-500 text-xs">max depth</span></div>
                   <div><span className={`font-bold ${m?.diamondCount ? 'text-rose-400' : 'text-emerald-400'}`}>{m?.diamondCount || 0}</span> <span className="text-gray-500 text-xs">diamonds</span></div>

@@ -26,15 +26,15 @@ export default function Pagination({ page, totalPages, totalItems, pageSize, onP
 
   if (compact) {
     return (
-      <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100 bg-gray-50 shrink-0">
-        <span className="text-[10px] text-gray-400">{from}–{to} of {totalItems}</span>
+      <div className="flex items-center justify-between px-3 py-2 border-t border-white/5 bg-[#1a1a2e] shrink-0">
+        <span className="text-[10px] text-gray-500">{from}–{to} of {totalItems}</span>
         <div className="flex gap-1">
           <button
             onClick={() => onPage(page - 1)}
             disabled={page === 1}
             className="w-6 h-6 flex items-center justify-center rounded text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed text-xs"
           >‹</button>
-          <span className="w-6 h-6 flex items-center justify-center text-[10px] font-semibold text-gray-600">
+          <span className="w-6 h-6 flex items-center justify-center text-[10px] font-semibold text-gray-500">
             {page}/{totalPages}
           </span>
           <button
@@ -48,26 +48,26 @@ export default function Pagination({ page, totalPages, totalItems, pageSize, onP
   }
 
   return (
-    <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-t border-gray-100 shrink-0">
+    <div className="flex items-center justify-between px-5 py-3 bg-[#1a1a2e] border-t border-white/5 shrink-0">
       <span className="text-xs text-gray-500">
-        Showing <span className="font-semibold text-gray-700">{from}–{to}</span> of{' '}
-        <span className="font-semibold text-gray-700">{totalItems}</span> packages
+        Showing <span className="font-semibold text-gray-300">{from}–{to}</span> of{' '}
+        <span className="font-semibold text-gray-300">{totalItems}</span> packages
       </span>
       <div className="flex items-center gap-1">
         <button
           onClick={() => onPage(1)}
           disabled={page === 1}
-          className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-500 hover:bg-white hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="px-2 py-1 text-xs rounded border border-[#2a2a35] text-gray-500 hover:bg-[#12121a] hover:border-[#3a3a45] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >«</button>
         <button
           onClick={() => onPage(page - 1)}
           disabled={page === 1}
-          className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-500 hover:bg-white hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="px-2 py-1 text-xs rounded border border-[#2a2a35] text-gray-500 hover:bg-[#12121a] hover:border-[#3a3a45] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >‹ Prev</button>
 
         {pages.map((p, i) =>
           p === '…' ? (
-            <span key={`ellipsis-${i}`} className="px-1 text-xs text-gray-400">…</span>
+            <span key={`ellipsis-${i}`} className="px-1 text-xs text-gray-500">…</span>
           ) : (
             <button
               key={p}
@@ -75,7 +75,7 @@ export default function Pagination({ page, totalPages, totalItems, pageSize, onP
               className={`w-7 h-7 text-xs rounded border transition-colors font-medium ${
                 p === page
                   ? 'bg-blue-600 border-blue-600 text-white'
-                  : 'border-gray-200 text-gray-600 hover:bg-white hover:border-gray-300'
+                  : 'border-[#2a2a35] text-gray-500 hover:bg-[#12121a] hover:border-[#3a3a45]'
               }`}
             >
               {p}
@@ -86,12 +86,12 @@ export default function Pagination({ page, totalPages, totalItems, pageSize, onP
         <button
           onClick={() => onPage(page + 1)}
           disabled={page === totalPages}
-          className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-500 hover:bg-white hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="px-2 py-1 text-xs rounded border border-[#2a2a35] text-gray-500 hover:bg-[#12121a] hover:border-[#3a3a45] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >Next ›</button>
         <button
           onClick={() => onPage(totalPages)}
           disabled={page === totalPages}
-          className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-500 hover:bg-white hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="px-2 py-1 text-xs rounded border border-[#2a2a35] text-gray-500 hover:bg-[#12121a] hover:border-[#3a3a45] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >»</button>
       </div>
     </div>

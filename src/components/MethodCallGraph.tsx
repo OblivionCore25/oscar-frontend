@@ -156,7 +156,7 @@ export default function MethodCallGraph({
 
   if (errorMsg) {
     return (
-      <div className="w-full h-full bg-red-50 text-red-600 font-medium p-6 rounded-lg overflow-auto border border-red-200">
+      <div className="w-full h-full bg-red-900/30 text-red-400 font-medium p-6 rounded-lg overflow-auto border border-red-900/50">
         <h3 className="font-bold text-lg mb-2">Graphology Render Crash</h3>
         <pre className="text-xs whitespace-pre-wrap">{errorMsg}</pre>
       </div>
@@ -166,7 +166,7 @@ export default function MethodCallGraph({
   return (
     <div
       style={{ width: "100%", height: "100%", position: "relative" }}
-      className="bg-slate-50 border border-gray-200 rounded-lg overflow-hidden"
+      className="bg-[#0a0a12] border border-[#2a2a35] rounded-lg overflow-hidden"
     >
       <SigmaContainer
         settings={{
@@ -190,21 +190,21 @@ export default function MethodCallGraph({
       </SigmaContainer>
 
       {/* Legend overlays */}
-      <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm p-3 rounded shadow-sm border border-gray-200 text-xs pointer-events-none">
-        <h4 className="font-bold text-gray-700 mb-2">Graph Legend</h4>
+      <div className="absolute bottom-4 left-4 bg-[#12121a]/90 backdrop-blur-sm p-3 rounded shadow-sm border border-[#2a2a35] text-xs pointer-events-none">
+        <h4 className="font-bold text-gray-300 mb-2">Graph Legend</h4>
         <div className="flex items-center gap-2 mb-1">
           <div className="w-3 h-3 rounded-full bg-slate-400" />
-          <span className="text-gray-600">Static Node</span>
+          <span className="text-gray-500">Static Node</span>
         </div>
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-3 h-0.5 bg-slate-300" />
-          <span className="text-gray-600">Static AST Edge</span>
+          <div className="w-3 h-0.5 bg-[#2a2a35]" />
+          <span className="text-gray-500">Static AST Edge</span>
         </div>
         <div className="flex items-center gap-2 mb-1">
           <div className="w-3 h-1 bg-rose-500" />
-          <span className="text-gray-600">Dynamic Trace Edge</span>
+          <span className="text-gray-500">Dynamic Trace Edge</span>
         </div>
-        <div className="mt-2 text-[10px] text-gray-400">
+        <div className="mt-2 text-[10px] text-gray-500">
           Node color: Louvain Community
           <br />
           Node size: Blast Radius

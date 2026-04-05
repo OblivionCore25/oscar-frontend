@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { TopRiskItem } from '../types/api';
+import MetricTooltip from './MetricTooltip';
+import { SUPPLY_CHAIN_METRICS } from '../data/metricDefinitions';
 
 interface TopRiskTableProps {
   items: TopRiskItem[];
@@ -13,7 +15,7 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
 
   if (!items.length) {
     return (
-      <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
+      <div className="text-center py-12 bg-[#12121a] rounded-xl shadow-sm border border-white/5">
         <p className="text-gray-500">No high-risk dependencies found in this ecosystem.</p>
       </div>
     );
@@ -29,9 +31,9 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
 
   // Percentile thresholds for colour coding
   const getPercentileColor = (pct: number) => {
-    if (pct >= 90) return { bar: 'bg-red-500', badge: 'text-red-700 bg-red-50 ring-red-200' };
-    if (pct >= 70) return { bar: 'bg-amber-500', badge: 'text-amber-700 bg-amber-50 ring-amber-200' };
-    return { bar: 'bg-blue-500', badge: 'text-blue-700 bg-blue-50 ring-blue-200' };
+    if (pct >= 90) return { bar: 'bg-red-500', badge: 'text-red-400 bg-red-900/30 ring-red-500/20' };
+    if (pct >= 70) return { bar: 'bg-amber-500', badge: 'text-amber-400 bg-amber-900/30 ring-amber-500/20' };
+    return { bar: 'bg-blue-500', badge: 'text-indigo-400 bg-indigo-900/30 ring-indigo-500/20' };
   };
 
   // Ordinal suffix helper
@@ -42,22 +44,44 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col">
+    <div className="bg-[#12121a] rounded-xl shadow-sm border border-[#2a2a35] flex flex-col">
       <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full text-left text-sm whitespace-nowrap">
-          <thead className="bg-slate-50 border-b border-gray-200 text-gray-600 font-semibold tracking-wide uppercase text-xs">
+          <thead className="bg-[#0a0a12] border-b border-[#2a2a35] text-gray-500 font-semibold tracking-wide uppercase text-xs">
             <tr>
               <th className="px-6 py-4">Package</th>
               <th className="px-6 py-4">Version</th>
               <th className="px-6 py-4 w-64">
-                Bottleneck Score
-                <span className="font-normal text-gray-400 lowercase ml-1">(percentile rank)</span>
+                <MetricTooltip metric={SUPPLY_CHAIN_METRICS.bottleneck}>
+                  <span className="cursor-help font-semibold">Bottleneck Score</span>
+                </MetricTooltip>
+                <span className="font-normal text-gray-500 lowercase ml-1">(percentile rank)</span>
               </th>
-              <th className="px-4 py-4 text-right">Fan-In</th>
-              <th className="px-4 py-4 text-right">Fan-Out</th>
-              <th className="px-4 py-4 text-right">PageRank</th>
-              <th className="px-4 py-4 text-right">Eigenvec.</th>
-              <th className="px-4 py-4 text-right">Blast Rad.</th>
+              <th className="px-4 py-4 text-right">
+                <MetricTooltip metric={SUPPLY_CHAIN_METRICS.fanIn}>
+                  <span className="cursor-help font-semibold">Fan-In</span>
+                </MetricTooltip>
+              </th>
+              <th className="px-4 py-4 text-right">
+                <MetricTooltip metric={SUPPLY_CHAIN_METRICS.fanOut}>
+                  <span className="cursor-help font-semibold">Fan-Out</span>
+                </MetricTooltip>
+              </th>
+              <th className="px-4 py-4 text-right">
+                <MetricTooltip metric={SUPPLY_CHAIN_METRICS.pageRank}>
+                  <span className="cursor-help font-semibold">PageRank</span>
+                </MetricTooltip>
+              </th>
+              <th className="px-4 py-4 text-right">
+                <MetricTooltip metric={SUPPLY_CHAIN_METRICS.eigenvector}>
+                  <span className="cursor-help font-semibold">Eigenvec.</span>
+                </MetricTooltip>
+              </th>
+              <th className="px-4 py-4 text-right">
+                <MetricTooltip metric={SUPPLY_CHAIN_METRICS.blastRadius}>
+                  <span className="cursor-help font-semibold">Blast Rad.</span>
+                </MetricTooltip>
+              </th>
               <th className="px-4 py-4 text-right">Actions</th>
             </tr>
           </thead>
@@ -67,12 +91,12 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
               const pct = item.bottleneckPercentile;
 
               return (
-                <tr key={item.id} className="hover:bg-slate-50 transition-colors group">
+                <tr key={item.id} className="hover:bg-[#0a0a12] transition-colors group">
                   <td className="px-6 py-4">
-                    <div className="font-bold text-gray-900">{item.name}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">{item.ecosystem}</div>
+                    <div className="font-bold text-gray-100">{item.name}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{item.ecosystem}</div>
                   </td>
-                  <td className="px-6 py-4 font-mono text-xs text-gray-600">
+                  <td className="px-6 py-4 font-mono text-xs text-gray-500">
                     v{item.version}
                   </td>
                   <td className="px-6 py-4 min-w-[200px]">
@@ -81,11 +105,11 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset tabular-nums ${colors.badge}`}>
                           {ordinal(Math.round(pct))} pct
                         </span>
-                        <span className="text-[10px] text-gray-400 tabular-nums">
+                        <span className="text-[10px] text-gray-500 tabular-nums">
                           raw: {item.bottleneckScore.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                         </span>
                       </div>
-                      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-1.5 w-full bg-[#2a2a35] rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${colors.bar}`}
                           style={{ width: `${Math.max(2, pct)}%` }}
@@ -96,30 +120,30 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
                   <td className="px-4 py-4 text-right tabular-nums">
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-700">{item.fanIn.toLocaleString()}</span>
+                        <span className="text-gray-300">{item.fanIn.toLocaleString()}</span>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-4 text-right tabular-nums">
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-700">{item.fanOut.toLocaleString()}</span>
+                        <span className="text-gray-300">{item.fanOut.toLocaleString()}</span>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-4 text-right tabular-nums font-mono text-xs text-indigo-600">
                     {item.pageRank ? item.pageRank.toFixed(6) : '0.000000'}
                   </td>
-                  <td className="px-4 py-4 text-right tabular-nums font-mono text-xs text-purple-600">
+                  <td className="px-4 py-4 text-right tabular-nums font-mono text-xs text-purple-400">
                     {item.eigenvectorCentrality ? item.eigenvectorCentrality.toFixed(6) : '0.000000'}
                   </td>
-                  <td className="px-4 py-4 text-right tabular-nums font-mono text-xs text-amber-600">
+                  <td className="px-4 py-4 text-right tabular-nums font-mono text-xs text-amber-400">
                     {item.blastRadius ? item.blastRadius.toLocaleString() : '0'}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <Link
                       to={`/graph?ecosystem=${item.ecosystem}&package=${item.name}&version=${item.version}`}
-                      className="inline-flex items-center justify-center p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                      className="inline-flex items-center justify-center p-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-900/30 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                       title="View Graph"
                     >
                       <ArrowRight className="w-4 h-4" />
@@ -134,7 +158,7 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
       
       {/* Pagination Footer */}
       {totalPages > 1 && (
-        <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-white rounded-b-xl shrink-0">
+        <div className="px-6 py-4 border-t border-[#2a2a35] flex items-center justify-between bg-[#12121a] rounded-b-xl shrink-0">
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-500">Rows per page:</span>
             <select
@@ -143,7 +167,7 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
                 setPageSize(Number(e.target.value));
                 setCurrentPage(1); // Reset to first page
               }}
-              className="text-sm border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 py-1 pl-2 pr-6"
+              className="text-sm border-[#3a3a45] rounded focus:ring-blue-500 focus:border-blue-500 py-1 pl-2 pr-6"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -153,7 +177,7 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
           </div>
           
           <div className="flex items-center gap-6">
-            <span className="text-sm text-gray-700">
+            <span className="text-sm text-gray-300">
               Showing <span className="font-medium">{startIndex + 1}</span> to <span className="font-medium">{Math.min(startIndex + pageSize, items.length)}</span> of <span className="font-medium">{items.length}</span> results
             </span>
             
@@ -161,18 +185,18 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={validCurrentPage === 1}
-                className="p-1 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-1 rounded hover:bg-[#2a2a35] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 title="Previous Page"
               >
-                <ChevronLeft className="w-5 h-5 text-gray-600" />
+                <ChevronLeft className="w-5 h-5 text-gray-500" />
               </button>
               <button
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={validCurrentPage === totalPages}
-                className="p-1 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-1 rounded hover:bg-[#2a2a35] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 title="Next Page"
               >
-                <ChevronRight className="w-5 h-5 text-gray-600" />
+                <ChevronRight className="w-5 h-5 text-gray-500" />
               </button>
             </div>
           </div>

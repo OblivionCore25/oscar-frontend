@@ -149,9 +149,9 @@ export default function GraphCanvas({ data, onEdgeSelect }: GraphCanvasProps) {
 
   // Classify the constraint severity for color coding
   const getConstraintBadgeStyle = (constraint: string): string => {
-    if (!constraint || constraint === 'unconstrained') return 'bg-red-100 text-red-800 border border-red-200';
-    if (constraint.startsWith('==') || constraint.includes('===')) return 'bg-amber-100 text-amber-800 border border-amber-200';
-    return 'bg-green-100 text-green-800 border border-green-200';
+    if (!constraint || constraint === 'unconstrained') return 'bg-red-900/40 text-red-800 border border-red-900/50';
+    if (constraint.startsWith('==') || constraint.includes('===')) return 'bg-amber-900/40 text-amber-800 border border-amber-200';
+    return 'bg-green-900/40 text-green-800 border border-green-200';
   };
 
   const getConstraintLabel = (constraint: string): string => {
@@ -184,26 +184,26 @@ export default function GraphCanvas({ data, onEdgeSelect }: GraphCanvasProps) {
           className="absolute z-20 pointer-events-none"
           style={{ left: tooltip.x + 16, top: tooltip.y - 8 }}
         >
-          <div className="bg-white border border-gray-200 shadow-lg rounded-lg p-3 text-xs min-w-[180px]">
-            <div className="font-semibold text-gray-700 mb-2 flex items-center gap-1">
-              <span className="text-gray-400">Edge Constraint</span>
+          <div className="bg-[#12121a] border border-[#2a2a35] shadow-lg rounded-lg p-3 text-xs min-w-[180px]">
+            <div className="font-semibold text-gray-300 mb-2 flex items-center gap-1">
+              <span className="text-gray-500">Edge Constraint</span>
             </div>
             <div className="space-y-1.5">
               <div className="flex justify-between">
                 <span className="text-gray-500">From:</span>
-                <span className="font-mono font-medium text-gray-800 truncate max-w-[110px]">{tooltip.source}</span>
+                <span className="font-mono font-medium text-gray-200 truncate max-w-[110px]">{tooltip.source}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">To:</span>
-                <span className="font-mono font-medium text-gray-800 truncate max-w-[110px]">{tooltip.target}</span>
+                <span className="font-mono font-medium text-gray-200 truncate max-w-[110px]">{tooltip.target}</span>
               </div>
-              <div className="border-t border-gray-100 pt-1.5 mt-1.5">
+              <div className="border-t border-white/5 pt-1.5 mt-1.5">
                 <span className="text-gray-500 block mb-1">Constraint:</span>
                 <span className={`font-mono text-xs px-2 py-0.5 rounded-full font-semibold ${getConstraintBadgeStyle(tooltip.constraint)}`}>
                   {tooltip.constraint}
                 </span>
               </div>
-              <div className="text-[10px] text-gray-400 pt-0.5">
+              <div className="text-[10px] text-gray-500 pt-0.5">
                 {getConstraintLabel(tooltip.constraint)}
               </div>
             </div>
@@ -213,7 +213,7 @@ export default function GraphCanvas({ data, onEdgeSelect }: GraphCanvasProps) {
 
       {/* Hint badge — only shown when graph has edges */}
       {data.edges.length > 0 && (
-        <div className="absolute bottom-4 right-4 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-md px-3 py-1.5 text-xs text-gray-500 pointer-events-none shadow-sm">
+        <div className="absolute bottom-4 right-4 bg-[#12121a]/80 backdrop-blur-sm border border-[#2a2a35] rounded-md px-3 py-1.5 text-xs text-gray-500 pointer-events-none shadow-sm">
           Hover over an edge to inspect version constraint
         </div>
       )}
