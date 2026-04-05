@@ -28,6 +28,7 @@ export default function MethodGraphViewer() {
   const originalSlug = searchParams.get('original_slug');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [exploreMode, setExploreMode] = useState(false);
+  const [exploreDepth, setExploreDepth] = useState(1);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const { data, isLoading, error } = useQuery({
@@ -52,15 +53,9 @@ export default function MethodGraphViewer() {
     return data.nodes.find((n: any) => n.id === selectedNodeId);
   }, [selectedNodeId, data]);
 
-  // Compute the 2-degree local neighborhood directly from the in-memory graph
-  const focusedGraphData = useMemo(() => {
+  // Pre-process edges once efficiently when data or selected node changes
+  const graphLookups = useMemo(() => {
     if (!data || !selectedNodeId) return null;
-
-    // 1st degree
-    const neighbors = new Set<string>();
-    neighbors.add(selectedNodeId);
-    
-    // Create fast lookup
     const edgesBySource: Record<string, any[]> = {};
     const edgesByTarget: Record<string, any[]> = {};
     data.edges.forEach((e: any) => {
@@ -71,24 +66,53 @@ export default function MethodGraphViewer() {
       edgesBySource[src].push(e);
       edgesByTarget[tgt].push(e);
     });
+    return { edgesBySource, edgesByTarget };
+  }, [data, selectedNodeId]);
 
-    // BFS Degrees
-    let currentLevel = new Set([selectedNodeId]);
-    for (let depth = 0; depth < 2; depth++) {
-       const nextLevel = new Set<string>();
-       for (const n of currentLevel) {
-          (edgesBySource[n] || []).forEach(e => nextLevel.add(e.target_id || e.target?.id || e.target));
-          (edgesByTarget[n] || []).forEach(e => nextLevel.add(e.source_id || e.source?.id || e.source));
-       }
-       for (const n of nextLevel) neighbors.add(n);
-       currentLevel = nextLevel;
+  // General function to compute ego graph up to a specific depth
+  const computeEgoGraph = useMemo(() => (targetDepth: number) => {
+    if (!data || !selectedNodeId || !graphLookups) return null;
+    const { edgesBySource, edgesByTarget } = graphLookups;
+
+    const upstream = new Set<string>();
+    let currentUp = new Set([selectedNodeId]);
+    for (let d = 0; d < targetDepth; d++) {
+      const nextUp = new Set<string>();
+      for (const n of currentUp) {
+        (edgesByTarget[n] || []).forEach(e => nextUp.add(e.source_id || e.source?.id || e.source));
+      }
+      for (const n of nextUp) upstream.add(n);
+      currentUp = nextUp;
     }
 
-    const filteredNodes = data.nodes.filter((n: any) => neighbors.has(n.id));
+    const downstream = new Set<string>();
+    let currentDown = new Set([selectedNodeId]);
+    for (let d = 0; d < targetDepth; d++) {
+      const nextDown = new Set<string>();
+      for (const n of currentDown) {
+        (edgesBySource[n] || []).forEach(e => nextDown.add(e.target_id || e.target?.id || e.target));
+      }
+      for (const n of nextDown) downstream.add(n);
+      currentDown = nextDown;
+    }
+
+    const neighbors = new Set<string>([selectedNodeId, ...upstream, ...downstream]);
+
+    const filteredNodes = data.nodes
+      .filter((n: any) => neighbors.has(n.id))
+      .map((n: any) => {
+        let role = undefined;
+        if (n.id === selectedNodeId) role = 'focal';
+        else if (upstream.has(n.id) && downstream.has(n.id)) role = 'bidirectional';
+        else if (upstream.has(n.id)) role = 'caller';
+        else if (downstream.has(n.id)) role = 'callee';
+        return { ...n, egoRole: role };
+      });
+
     const filteredEdges = data.edges.filter((e: any) => {
-       const src = e.source_id || e.source?.id || e.source;
-       const tgt = e.target_id || e.target?.id || e.target;
-       return neighbors.has(src) && neighbors.has(tgt);
+      const src = e.source_id || e.source?.id || e.source;
+      const tgt = e.target_id || e.target?.id || e.target;
+      return neighbors.has(src) && neighbors.has(tgt);
     });
 
     return {
@@ -97,7 +121,10 @@ export default function MethodGraphViewer() {
       node_count: filteredNodes.length,
       edge_count: filteredEdges.length
     };
-  }, [data, selectedNodeId]);
+  }, [data, selectedNodeId, graphLookups]);
+
+  const focusedGraphData = useMemo(() => computeEgoGraph(exploreDepth), [computeEgoGraph, exploreDepth]);
+  const previewGraphData = useMemo(() => computeEgoGraph(1), [computeEgoGraph]);
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a12]">
@@ -191,17 +218,29 @@ export default function MethodGraphViewer() {
                ) : (
                  <div className="relative w-full h-full">
                     {/* Floating Back to Overview Button */}
-                    <div className="absolute top-4 left-4 z-50">
+                    <div className="absolute top-4 left-4 z-50 flex gap-2">
                       <button 
                          onClick={() => {
                            setExploreMode(false);
-                           setSelectedNodeId(null);
                          }}
                          className="flex items-center gap-2 bg-[#12121a]/90 backdrop-blur border border-white/10 px-4 py-2 rounded-lg text-sm font-bold text-slate-300 hover:text-white hover:bg-[#1a1a24] transition-all shadow-xl"
                       >
                          <BoxSelect className="w-4 h-4 text-indigo-400" />
                          Back to Methods Dashboard
                       </button>
+                      
+                      <div className="flex items-center gap-3 bg-[#12121a]/90 backdrop-blur border border-white/10 px-4 py-2 rounded-lg text-sm font-bold text-slate-300 shadow-xl">
+                        <span className="text-[10px] uppercase tracking-wider text-slate-500">Depth</span>
+                        <input 
+                          type="range" 
+                          min="1" 
+                          max="3" 
+                          value={exploreDepth}
+                          onChange={(e) => setExploreDepth(parseInt(e.target.value))}
+                          className="w-24 accent-indigo-500 cursor-pointer"
+                        />
+                        <span className="w-4 text-center font-mono text-indigo-400">{exploreDepth}°</span>
+                      </div>
                     </div>
                     {/* Render standard force graph but only fed with the filtered Local Subgraph */}
                     <MethodCallGraph data={focusedGraphData!} highlightedNodes={highlightedNodes} onNodeSelect={(id) => id ? setSelectedNodeId(id) : null} />
@@ -232,7 +271,10 @@ export default function MethodGraphViewer() {
                    {selectedNodeDetails.file_path}:{selectedNodeDetails.start_line}
                  </p>
                </div>
-               <button onClick={() => setSelectedNodeId(null)} className="shrink-0 text-gray-500 hover:text-gray-500 bg-[#12121a] border border-[#2a2a35] rounded p-1 transition-colors">
+               <button onClick={() => {
+                 setSelectedNodeId(null);
+                 setExploreMode(false);
+               }} className="shrink-0 text-gray-500 hover:text-gray-500 bg-[#12121a] border border-[#2a2a35] rounded p-1 transition-colors">
                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                </button>
             </div>
@@ -290,6 +332,33 @@ export default function MethodGraphViewer() {
                     <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                     Community Cluster #{selectedNodeDetails.community_id}
                   </div>
+                </div>
+              )}
+
+              {/* Inline Graph Preview */}
+              {!exploreMode && previewGraphData && (
+                <div className="mt-8">
+                  <h3 className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-2 flex justify-between items-center">
+                    <span>Neighborhood Preview (1°)</span>
+                    <span className="text-[9px] font-mono text-slate-600 bg-slate-800 px-1.5 py-0.5 rounded">
+                      {previewGraphData.node_count} nodes
+                    </span>
+                  </h3>
+                  <div className="h-48 w-full border border-[#2a2a35] rounded-xl overflow-hidden bg-[#050508] relative mb-4">
+                     <MethodCallGraph 
+                        data={previewGraphData} 
+                        hideLegend={true}
+                        onNodeSelect={(id) => id && setSelectedNodeId(id)} 
+                     />
+                     {/* Floating mini overlay to ensure clicking background doesn't do weird things, or just let users interact! */}
+                  </div>
+                  <button 
+                    onClick={() => setExploreMode(true)}
+                    className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-lg"
+                  >
+                    <Network className="w-4 h-4" />
+                    Explore Neighborhood
+                  </button>
                 </div>
               )}
             </div>

@@ -39,12 +39,15 @@ export default function FluidGraphCanvas({ data, mode, highlightedNodes, vulnera
     return () => observer.disconnect();
   }, []);
 
-  // Format data and calculate physical analytics mappings
+  const nodeCache = useRef(new Map<string, any>());
+
+  // Format data and calculate physical analytics mappings consistently
   const graphData = useMemo(() => {
     return {
       nodes: data.nodes.map(n => {
+        const id = n.id || n.name;
         let size = 4;
-        if (n.id === data.root) size = 8;
+        if (id === data.root) size = 8;
         else if (mode === 'method' && n.blast_radius !== undefined) {
           size = Math.min(12, 3 + (n.blast_radius / 2));
         }
@@ -52,7 +55,20 @@ export default function FluidGraphCanvas({ data, mode, highlightedNodes, vulnera
           size = Math.min(12, 3 + Math.sqrt(n.fan_in));
         }
 
-        return { ...n, id: n.id || n.name, size };
+        const newNode: any = { ...n, id, size };
+        const cached = nodeCache.current.get(id);
+        if (cached) {
+          // Preserve live physics state to prevent jumping when data changes
+          if (cached.x !== undefined) newNode.x = cached.x;
+          if (cached.y !== undefined) newNode.y = cached.y;
+          if (cached.vx !== undefined) newNode.vx = cached.vx;
+          if (cached.vy !== undefined) newNode.vy = cached.vy;
+          if (cached.fx !== undefined) newNode.fx = cached.fx;
+          if (cached.fy !== undefined) newNode.fy = cached.fy;
+        }
+        
+        nodeCache.current.set(id, newNode);
+        return newNode;
       }),
       links: data.edges.map(e => ({ ...e, source: e.source, target: e.target }))
     };
@@ -92,6 +108,12 @@ export default function FluidGraphCanvas({ data, mode, highlightedNodes, vulnera
     }
     
     if (mode === 'method') {
+      // Ego graph specific coloring
+      if (node.egoRole === 'focal') return '#fbbf24'; // Amber
+      if (node.egoRole === 'caller') return '#38bdf8'; // Light Blue (Upstream)
+      if (node.egoRole === 'callee') return '#e879f9'; // Pink (Downstream)
+      if (node.egoRole === 'bidirectional') return '#c084fc'; // Purple
+
       // Color by Community ID using distinct neon colors
       const colors = ['#34d399', '#60a5fa', '#f472b6', '#a78bfa', '#fbbf24', '#2dd4bf'];
       const idx = node.community_id ?? 0;
@@ -125,20 +147,7 @@ export default function FluidGraphCanvas({ data, mode, highlightedNodes, vulnera
     // Size logic
     const size = node.size || 4;
 
-    let glowScale = isHovered ? 1.5 : 1.2;
-    if (mode === 'dependency' && node.bottleneck_score) {
-      glowScale += (node.bottleneck_score / 100) * 0.6; // Higher bottleneck = wider burn
-    } else if (mode === 'method' && node.complexity) {
-      glowScale += (node.complexity / 20) * 0.4;
-    }
-
-    // Draw the glowing aura
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, size * glowScale, 0, 2 * Math.PI, false);
-    ctx.fillStyle = `${color}33`; // 20% opacity
-    ctx.fill();
-
-    // Check isolation
+    // Check isolation FIRST
     let isFaded = false;
     if (focusNodeId) {
       if (node.id !== focusNodeId && !(neighborsMap[focusNodeId] && neighborsMap[focusNodeId].has(node.id))) {
@@ -146,6 +155,21 @@ export default function FluidGraphCanvas({ data, mode, highlightedNodes, vulnera
       }
     } else if (highlightedNodes && highlightedNodes.length > 0 && !highlightedNodes.includes(node.id)) {
       isFaded = true;
+    }
+
+    let glowScale = isHovered ? 1.5 : 1.2;
+    if (mode === 'dependency' && node.bottleneck_score) {
+      glowScale += (node.bottleneck_score / 100) * 0.6; // Higher bottleneck = wider burn
+    } else if (mode === 'method' && node.complexity) {
+      glowScale += (node.complexity / 20) * 0.4;
+    }
+
+    // Draw the glowing aura only if not faded
+    if (!isFaded) {
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, size * glowScale, 0, 2 * Math.PI, false);
+      ctx.fillStyle = `${color}33`; // 20% opacity
+      ctx.fill();
     }
 
     // Draw the core
@@ -208,12 +232,12 @@ export default function FluidGraphCanvas({ data, mode, highlightedNodes, vulnera
        setFocusNodeId(node.id);
     }
     
-    // Auto center
-    if (fgRef.current) {
+    // Auto center only for full ecosystem dependency maps
+    if (fgRef.current && mode === 'dependency') {
       fgRef.current.centerAt(node.x, node.y, 1000);
       fgRef.current.zoom(3, 1000);
     }
-  }, [onNodeSelect]);
+  }, [onNodeSelect, mode]);
 
   const handleLinkClick = useCallback((link: any) => {
     if (onEdgeSelect) {
