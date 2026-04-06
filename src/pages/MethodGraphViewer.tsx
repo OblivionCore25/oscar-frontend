@@ -23,7 +23,8 @@ const fetchGraph = async (slug: string) => {
 export default function MethodGraphViewer() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const project = searchParams.get('project');
+  const rawProject = searchParams.get('project');
+  const project = rawProject ? rawProject.replace('@', '').replace('/', '__') : '';
   const isMetaRedirect = searchParams.get('meta_redirect') === 'true';
   const originalSlug = searchParams.get('original_slug');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);

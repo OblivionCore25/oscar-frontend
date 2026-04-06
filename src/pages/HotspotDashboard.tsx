@@ -116,7 +116,11 @@ export default function HotspotDashboard() {
                       <td className="px-6 py-4 text-right font-mono text-purple-400">{item.metrics.blast_radius || 0}</td>
                       <td className="px-6 py-4 text-right font-mono text-indigo-400">{(item.metrics.betweenness_centrality || 0).toFixed(4)}</td>
                       <td className="px-6 py-4 text-right font-mono font-bold text-rose-400">
-                         {item.composite_risk > 1000 ? (item.composite_risk / 1000).toFixed(1) + 'k' : Math.round(item.composite_risk)}
+                         {item.composite_risk > 1000 
+                            ? (item.composite_risk / 1000).toFixed(1) + 'k' 
+                            : item.composite_risk < 1 
+                              ? item.composite_risk.toFixed(4) 
+                              : Math.round(item.composite_risk)}
                       </td>
                     </tr>
                   ))}

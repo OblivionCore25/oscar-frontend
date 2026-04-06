@@ -18,7 +18,7 @@ export default function ResearchConsole() {
   const version = searchParams.get('version');
   
   // The Method Observatory simply uses the package name as the project slug for PyPI tracking
-  const projectSlug = packageName;
+  const projectSlug = packageName ? packageName.replace('@', '').replace('/', '__') : '';
 
   // 1. Fetch Dependency Observatory Stats
   const { data: pkgData, isLoading: pkgLoading, error: pkgError } = useQuery({
@@ -210,7 +210,7 @@ export default function ResearchConsole() {
                    <Box className="w-5 h-5 text-emerald-400 mr-2" />
                    <h2 className="font-bold text-gray-100 tracking-wide text-sm uppercase">Internal Arch (Method Obs.)</h2>
                  </div>
-                 {!metaData && !metaLoading && ecosystem?.toLowerCase() === 'pypi' && (
+                 {!metaData && !metaLoading && ['pypi', 'npm'].includes(ecosystem?.toLowerCase() || '') && (
                     <button 
                        onClick={handleIngest}
                        disabled={isIngesting}
@@ -225,14 +225,14 @@ export default function ResearchConsole() {
               {metaLoading ? (
                  <div className="p-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-emerald-500" /></div>
               ) : !metaData ? (
-                 <div className="p-12 text-center text-gray-500 flex flex-col items-center">
-                    <Database className="w-8 h-8 mb-3 opacity-20" />
-                    {ecosystem?.toLowerCase() === 'pypi' ? (
-                        <>No internal call graph data available.<br/>Analyze package to unlock method-level metrics.</>
-                    ) : (
-                        <span className="text-amber-500/80">Internal Architecture extraction for {ecosystem} packages requires an additional analyzer plugin.<br/>Currently supporting: PyPI.</span>
-                    )}
-                 </div>
+                  <div className="p-12 text-center text-gray-500 flex flex-col items-center">
+                     <Database className="w-8 h-8 mb-3 opacity-20" />
+                     {['pypi', 'npm'].includes(ecosystem?.toLowerCase() || '') ? (
+                         <>No internal call graph data available.<br/>Analyze package to unlock method-level metrics.</>
+                     ) : (
+                         <span className="text-amber-500/80">Internal Architecture extraction for {ecosystem} packages requires an additional analyzer plugin.<br/>Currently supporting: PyPI, NPM.</span>
+                     )}
+                  </div>
               ) : (
                  <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4 font-mono text-sm">
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
@@ -254,7 +254,12 @@ export default function ResearchConsole() {
                     
                     <div className="flex justify-between items-center border-b border-white/5 pb-2 col-span-2">
                        <MetricTooltip metric={METHOD_METRICS.resolutionRate}><span className="text-gray-500">Resolution Rate</span></MetricTooltip>
-                       <span className="text-gray-100">{(metaData.resolution_rate * 100).toFixed(1)}%</span>
+                       <span className={`font-bold ${metaData.resolution_rate < 0.75 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                         {(metaData.resolution_rate * 100).toFixed(1)}%
+                         {metaData.resolution_rate < 0.75 && (
+                           <span className="ml-2 text-xs font-normal text-amber-500/70" title="Dynamic languages like JS limit static analysis resolution.">(Dynamic limits apply)</span>
+                         )}
+                       </span>
                     </div>
 
                     <div className="flex justify-between items-center border-b border-white/5 pb-2 col-span-2">

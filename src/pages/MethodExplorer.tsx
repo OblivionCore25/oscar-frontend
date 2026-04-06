@@ -4,10 +4,15 @@ import axios from 'axios';
 import { Network, Search, Loader2, AlertCircle, PlayCircle, BarChart3, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+interface AnalyzedProject {
+  slug: string;
+  ecosystem: string;
+}
+
 // Fetch the list of analyzed projects
-const fetchProjects = async () => {
+const fetchProjects = async (): Promise<AnalyzedProject[]> => {
   const { data } = await axios.get(`${import.meta.env.VITE_METHOD_API_URL}/methods/projects`);
-  return data as string[];
+  return data;
 };
 
 export default function MethodExplorer() {
@@ -18,7 +23,7 @@ export default function MethodExplorer() {
     queryFn: fetchProjects,
   });
 
-  const filteredProjects = projects?.filter(p => p.toLowerCase().includes(searchTerm.toLowerCase())) || [];
+  const filteredProjects = projects?.filter(p => p.slug.toLowerCase().includes(searchTerm.toLowerCase())) || [];
 
   return (
     <div className="max-w-5xl mx-auto p-8 h-full flex flex-col">
@@ -28,7 +33,7 @@ export default function MethodExplorer() {
         </div>
         <h1 className="text-3xl font-extrabold text-gray-100 tracking-tight">Method Explorer</h1>
         <p className="mt-3 text-lg text-gray-500 max-w-2xl mx-auto">
-          Analyze internal Python method topologies. Select a strictly analyzed project repository to browse architectural communities and hotspot blast limits.
+          Analyze internal method topologies. Select a strictly analyzed project repository to browse architectural communities and hotspot blast limits.
         </p>
       </div>
 
@@ -69,32 +74,32 @@ export default function MethodExplorer() {
 
           {!isLoading && !error && filteredProjects.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredProjects.map((slug) => (
-                <div key={slug} className="bg-[#12121a] p-5 rounded-xl border border-[#2a2a35] shadow-sm hover:border-indigo-300 hover:shadow-md transition-all group">
+              {filteredProjects.map((project) => (
+                <div key={project.slug} className="bg-[#12121a] p-5 rounded-xl border border-[#2a2a35] shadow-sm hover:border-indigo-300 hover:shadow-md transition-all group">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-lg font-bold text-gray-100 group-hover:text-indigo-400 transition-colors font-mono">{slug}</h3>
-                      <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider font-semibold">Python Runtime</p>
+                      <h3 className="text-lg font-bold text-gray-100 group-hover:text-indigo-400 transition-colors font-mono">{project.slug}</h3>
+                      <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider font-semibold">{project.ecosystem === 'npm' ? 'JavaScript Runtime' : 'Python Runtime'}</p>
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4 pt-4 border-t border-white/5">
                     <Link
-                      to={`/methods/graph?project=${slug}`}
+                      to={`/methods/graph?project=${project.slug}`}
                       className="flex items-center justify-center p-2 rounded-md bg-[#0a0a12] hover:bg-indigo-50 text-slate-300 hover:text-indigo-700 font-medium text-xs transition-colors border border-[#2a2a35]"
                     >
                       <PlayCircle className="w-4 h-4 mr-1.5" />
                       Visualizer
                     </Link>
                     <Link
-                      to={`/methods/hotspots?project=${slug}`}
+                      to={`/methods/hotspots?project=${project.slug}`}
                       className="flex items-center justify-center p-2 rounded-md bg-[#0a0a12] hover:bg-rose-900/30 text-slate-300 hover:text-rose-400 font-medium text-xs transition-colors border border-[#2a2a35]"
                     >
                       <BarChart3 className="w-4 h-4 mr-1.5" />
                       Hotspots
                     </Link>
                     <Link
-                      to={`/methods/communities?project=${slug}`}
+                      to={`/methods/communities?project=${project.slug}`}
                       className="flex items-center justify-center p-2 rounded-md bg-[#0a0a12] hover:bg-emerald-900/30 text-slate-300 hover:text-emerald-400 font-medium text-xs transition-colors border border-[#2a2a35]"
                     >
                       <Users className="w-4 h-4 mr-1.5" />
