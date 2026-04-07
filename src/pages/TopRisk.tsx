@@ -120,7 +120,7 @@ export default function TopRisk() {
 
                   <div className="flex items-start gap-1.5 text-[11px] text-amber-400 bg-amber-900/30 border border-amber-200 rounded-lg px-3 py-2 max-w-xs shrink-0">
                     <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                    <span>Fan-in accuracy improves as graph coverage increases. Percentile ranks are relative to ingested packages only.</span>
+                    <span>Fan-in and Bottleneck scores now utilize global ecosystem data from deps.dev bridging local coverage gaps where available. Percentile ranks remain calculated relative to locally ingested packages only.</span>
                   </div>
                 </div>
               </div>

@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ArrowLeft, Loader2, AlertCircle, Microscope, Box, Database, Activity, GitCommit, GitPullRequest } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, Microscope, Box, Database, Activity, GitCommit, GitPullRequest, Shield, ExternalLink, Download } from 'lucide-react';
 import type { PackageDetailsResponse } from '../types/api';
 import MetricTooltip from '../components/MetricTooltip';
-import { SUPPLY_CHAIN_METRICS, METHOD_METRICS } from '../data/metricDefinitions';
+import { ALL_SUPPLY_METRICS as SUPPLY_CHAIN_METRICS, METHOD_METRICS } from '../data/metricDefinitions';
 
 export default function ResearchConsole() {
   const [searchParams] = useSearchParams();
@@ -104,11 +104,28 @@ export default function ResearchConsole() {
   }
 
   const m = pkgData?.metrics;
-  const I = m ? (m.fanOut / (m.fanOut + m.fanIn || 1)) : 0;
-  const A = "n/a"; // Not mapped yet
+  const effectiveFanIn = m?.globalFanIn ?? m?.fanIn ?? 0;
+  const I = m ? (m.fanOut / (m.fanOut + effectiveFanIn || 1)) : 0;
+  const A = "n/a";
   const zone = I < 0.2 ? "Zone of Pain" : I > 0.8 ? "Zone of Uselessness" : "Main Sequence Transition";
   
-  const orphanRatio = metaData ? ((hotspots?.[0]?.metrics?.is_orphan ? 1 : 0) / (metaData.method_count || 1) * 100).toFixed(1) : "0.0"; // Placeholder formula for now
+  const orphanRatio = metaData ? ((hotspots?.[0]?.metrics?.is_orphan ? 1 : 0) / (metaData.method_count || 1) * 100).toFixed(1) : "0.0";
+
+  // Helper to format large numbers
+  const fmtNum = (n: number | undefined | null) => {
+    if (n == null) return '—';
+    if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+    return n.toLocaleString();
+  };
+
+  // Scorecard check color helper
+  const checkColor = (score: number) => {
+    if (score >= 7) return 'text-emerald-400 bg-emerald-500/15';
+    if (score >= 4) return 'text-amber-400 bg-amber-500/15';
+    return 'text-rose-400 bg-rose-500/15';
+  };
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0f] text-gray-300 font-sans">
@@ -147,7 +164,7 @@ export default function ResearchConsole() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* SUPPLY CHAIN PANEL */}
             <div className="bg-[#12121a] rounded-2xl border border-[#2a2a35] shadow-xl backdrop-blur-sm shadow-fuchsia-900/5">
               <div className="bg-gradient-to-r from-[#1c1c28] to-[#12121a] px-6 py-4 border-b border-[#2a2a35] flex items-center rounded-t-2xl">
@@ -162,30 +179,44 @@ export default function ResearchConsole() {
               ) : m ? (
                  <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4 font-mono text-sm">
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <MetricTooltip metric={SUPPLY_CHAIN_METRICS.fanIn}><span className="text-gray-500">Fan-In</span></MetricTooltip>
-                       <span className="text-gray-100">{m.fanIn.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <MetricTooltip metric={SUPPLY_CHAIN_METRICS.fanOut}><span className="text-gray-500">Fan-Out</span></MetricTooltip>
-                       <span className="text-gray-100">{m.fanOut.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <MetricTooltip metric={SUPPLY_CHAIN_METRICS.bottleneck}><span className="text-gray-500">Bottleneck</span></MetricTooltip>
-                       <span className="text-amber-400 font-bold">{m.bottleneckScore.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <MetricTooltip metric={SUPPLY_CHAIN_METRICS.blastRadius}><span className="text-gray-500">Blast Radius</span></MetricTooltip>
-                       <span className="text-indigo-400">{m.blastRadius?.toLocaleString() || 0}</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <MetricTooltip metric={SUPPLY_CHAIN_METRICS.pageRank}><span className="text-gray-500">PageRank</span></MetricTooltip>
-                       <span className="text-gray-100">{(m.pageRank || 0).toFixed(6)}</span>
-                    </div>
-                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                       <MetricTooltip metric={SUPPLY_CHAIN_METRICS.eigenvector}><span className="text-gray-500">Eigenvector</span></MetricTooltip>
-                       <span className="text-purple-400 font-bold">{(m.eigenvectorCentrality || 0).toFixed(6)}</span>
-                    </div>
+                        <MetricTooltip metric={SUPPLY_CHAIN_METRICS.fanIn}><span className="text-gray-500">Fan-In</span></MetricTooltip>
+                        <span className="text-gray-100 flex items-center">
+                          {m.globalFanIn != null ? (
+                            <>
+                              {m.globalFanIn.toLocaleString()}
+                              <span className="ml-1.5 text-[10px] text-sky-400/70 font-normal" title={`Local cache: ${m.fanIn}`}>via deps.dev</span>
+                            </>
+                          ) : m.fanIn.toLocaleString()}
+                        </span>
+                     </div>
+                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                        <MetricTooltip metric={SUPPLY_CHAIN_METRICS.fanOut}><span className="text-gray-500">Fan-Out</span></MetricTooltip>
+                        <span className="text-gray-100">{m.fanOut.toLocaleString()}</span>
+                     </div>
+                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                        <MetricTooltip metric={SUPPLY_CHAIN_METRICS.bottleneck}><span className="text-gray-500">Bottleneck</span></MetricTooltip>
+                        <span className="text-amber-400 font-bold">{m.bottleneckScore.toLocaleString()}</span>
+                     </div>
+                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                        <MetricTooltip metric={SUPPLY_CHAIN_METRICS.blastRadius}><span className="text-gray-500">Blast Radius</span></MetricTooltip>
+                        <span className="text-indigo-400">{m.blastRadius?.toLocaleString() || 0}</span>
+                     </div>
+                     
+                     {m.monthlyDownloads != null && (
+                       <div className="flex justify-between items-center border-b border-white/5 pb-2 col-span-2">
+                          <span className="text-gray-500 flex items-center"><Download className="w-3 h-3 mr-1.5 opacity-50" />Downloads (30d)</span>
+                          <span className="text-cyan-400 font-bold">{fmtNum(m.monthlyDownloads)}</span>
+                       </div>
+                     )}
+                     
+                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                        <MetricTooltip metric={SUPPLY_CHAIN_METRICS.pageRank}><span className="text-gray-500">PageRank</span></MetricTooltip>
+                        <span className="text-gray-100">{(m.pageRank || 0).toFixed(6)}</span>
+                     </div>
+                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                        <MetricTooltip metric={SUPPLY_CHAIN_METRICS.eigenvector}><span className="text-gray-500">Eigenvector</span></MetricTooltip>
+                        <span className="text-purple-400 font-bold">{(m.eigenvectorCentrality || 0).toFixed(6)}</span>
+                     </div>
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
                        <MetricTooltip metric={SUPPLY_CHAIN_METRICS.betweenness}><span className="text-gray-500">Betweenness</span></MetricTooltip>
                        <span className="text-gray-100">{(m.betweennessCentrality || 0).toFixed(6)}</span>
@@ -201,6 +232,64 @@ export default function ResearchConsole() {
                     </div>
                  </div>
               ) : null}
+            </div>
+
+            {/* SECURITY HEALTH PANEL (OpenSSF Scorecard) */}
+            <div className="bg-[#12121a] rounded-2xl border border-[#2a2a35] shadow-xl backdrop-blur-sm shadow-sky-900/5">
+              <div className="bg-gradient-to-r from-[#1c1c28] to-[#12121a] px-6 py-4 border-b border-[#2a2a35] flex items-center rounded-t-2xl">
+                 <Shield className="w-5 h-5 text-sky-400 mr-2" />
+                 <h2 className="font-bold text-gray-100 tracking-wide text-sm uppercase">Security Health</h2>
+              </div>
+
+              {m?.scorecardScore != null ? (
+                <div className="p-6 space-y-4">
+                  {/* Aggregate Score */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-gray-500 uppercase tracking-widest mb-1">OpenSSF Scorecard</div>
+                      <div className="text-3xl font-bold tracking-tight">
+                        <span className={m.scorecardScore >= 7 ? 'text-emerald-400' : m.scorecardScore >= 4 ? 'text-amber-400' : 'text-rose-400'}>
+                          {m.scorecardScore}
+                        </span>
+                        <span className="text-gray-600 text-lg font-normal"> / 10</span>
+                      </div>
+                    </div>
+                    <div className={`w-14 h-14 rounded-full border-4 flex items-center justify-center text-sm font-bold ${m.scorecardScore >= 7 ? 'border-emerald-500/50 text-emerald-400' : m.scorecardScore >= 4 ? 'border-amber-500/50 text-amber-400' : 'border-rose-500/50 text-rose-400'}`}>
+                      {m.scorecardScore >= 7 ? 'A' : m.scorecardScore >= 4 ? 'B' : 'C'}
+                    </div>
+                  </div>
+
+                  {/* Individual Checks */}
+                  {m.scorecardChecks && (
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {Object.entries(m.scorecardChecks).sort(([,a],[,b]) => b - a).map(([name, score]) => (
+                        <div key={name} className="flex items-center justify-between text-xs font-mono px-2 py-1 rounded bg-white/[0.02]">
+                          <span className="text-gray-500 truncate mr-2" title={name}>{name}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${checkColor(score)}`}>{score}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Source Repo Link */}
+                  {m.sourceRepoUrl && (
+                    <a
+                      href={m.sourceRepoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center text-xs text-sky-400/70 hover:text-sky-300 transition-colors mt-2"
+                    >
+                      <ExternalLink className="w-3 h-3 mr-1.5" />
+                      {m.sourceRepoUrl.replace('https://github.com/', '')}
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <div className="p-12 text-center text-gray-500 flex flex-col items-center">
+                  <Shield className="w-8 h-8 mb-3 opacity-20" />
+                  <span>Scorecard data not available.<br/>Security scoring requires a linked GitHub repository.</span>
+                </div>
+              )}
             </div>
 
             {/* INTERNAL ARCHITECTURE PANEL */}

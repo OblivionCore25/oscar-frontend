@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Loader2, AlertCircle, Network, ArrowRight, FlaskConical, Database, CheckCircle2 } from 'lucide-react';
+import { Search, Loader2, AlertCircle, Network, ArrowRight, FlaskConical, Database, CheckCircle2, Globe } from 'lucide-react';
 import MetricTooltip from '../components/MetricTooltip';
 import { SUPPLY_CHAIN_METRICS } from '../data/metricDefinitions';
 import { usePackageQuery } from '../hooks/usePackageQuery';
@@ -357,7 +357,7 @@ export default function PackageSearch() {
             </div>
           </div>
 
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             <div className="bg-[#1a1a2e] rounded-lg p-4 border border-white/5">
               <span className="text-gray-500 text-sm font-medium mb-1 block">Direct Dependencies</span>
               <span className="text-3xl font-bold text-gray-100">{data.metrics.directDependencies}</span>
@@ -369,10 +369,13 @@ export default function PackageSearch() {
               <span className="text-3xl font-bold text-gray-100">{data.metrics.fanOut}</span>
             </div>
             <div className="bg-[#1a1a2e] rounded-lg p-4 border border-white/5">
-              <span className="text-gray-500 text-sm font-medium mb-1 block">
+              <span className="text-gray-500 text-sm font-medium mb-1 flex items-center justify-between">
                 <MetricTooltip metric={SUPPLY_CHAIN_METRICS.fanIn}>Fan-In (Dependents)</MetricTooltip>
+                {data.metrics.globalFanIn != null && <span title="via deps.dev"><Globe className="w-4 h-4 text-sky-500/70" /></span>}
               </span>
-              <span className="text-3xl font-bold text-indigo-400">{data.metrics.fanIn}</span>
+              <span className="text-3xl font-bold text-indigo-400">
+                {data.metrics.globalFanIn != null ? data.metrics.globalFanIn : data.metrics.fanIn}
+              </span>
             </div>
             <div className="bg-[#1a1a2e] rounded-lg p-4 border border-white/5 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-16 h-16 bg-red-900/40 rounded-bl-full opacity-50 -mr-8 -mt-8"></div>
@@ -381,6 +384,33 @@ export default function PackageSearch() {
               </span>
               <span className="text-3xl font-bold text-red-400 relative z-10">{data.metrics.bottleneckScore.toFixed(1)}</span>
             </div>
+            <div className="bg-[#1a1a2e] rounded-lg p-4 border border-white/5">
+              <span className="text-gray-500 text-sm font-medium mb-1 flex items-center">
+                <MetricTooltip metric={SUPPLY_CHAIN_METRICS.monthlyDownloads}>Downloads (30d)</MetricTooltip>
+              </span>
+              <span className="text-3xl font-bold text-cyan-400">
+                {data.metrics.monthlyDownloads != null ? (
+                  data.metrics.monthlyDownloads >= 1_000_000_000 ? `${(data.metrics.monthlyDownloads / 1_000_000_000).toFixed(1)}B` :
+                  data.metrics.monthlyDownloads >= 1_000_000 ? `${(data.metrics.monthlyDownloads / 1_000_000).toFixed(1)}M` :
+                  data.metrics.monthlyDownloads >= 1_000 ? `${(data.metrics.monthlyDownloads / 1_000).toFixed(1)}K` :
+                  data.metrics.monthlyDownloads.toLocaleString()
+                ) : '—'}
+              </span>
+            </div>
+            {data.metrics.scorecardScore != null && (
+              <div className="bg-[#1a1a2e] rounded-lg p-4 border border-white/5">
+                <span className="text-gray-500 text-sm font-medium mb-1 block">
+                  <MetricTooltip metric={SUPPLY_CHAIN_METRICS.scorecardScore}>Security Health</MetricTooltip>
+                </span>
+                <span className={`text-2xl font-bold px-2 py-0.5 rounded inline-block mt-1 ${
+                  data.metrics.scorecardScore >= 7 ? 'text-emerald-400 bg-emerald-500/15' :
+                  data.metrics.scorecardScore >= 4 ? 'text-amber-400 bg-amber-500/15' :
+                  'text-rose-400 bg-rose-500/15'
+                }`}>
+                  {data.metrics.scorecardScore.toFixed(1)} / 10
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { PackageDetailsResponse, TransitiveGraphResponse, TopRiskResponse, CoverageResponse, IngestedPackagesResponse, StreamProgressEvent, VulnerabilityBreakdownResponse } from '../types/api';
+import type { PackageDetailsResponse, TransitiveGraphResponse, TopRiskResponse, CoverageResponse, IngestedPackagesResponse, StreamProgressEvent, VulnerabilityBreakdownResponse, EnrichmentResponse } from '../types/api';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_OSCAR_API_URL,
@@ -128,6 +128,17 @@ export const getVulnerabilityBreakdown = async (
 ): Promise<VulnerabilityBreakdownResponse> => {
   const response = await apiClient.get<VulnerabilityBreakdownResponse>(
     `/dependencies/${ecosystem}/${encodeURIComponent(packageName)}/${encodeURIComponent(version)}/vulnerabilities`
+  );
+  return response.data;
+};
+
+export const getEnrichment = async (
+  ecosystem: string,
+  packageName: string,
+  version: string
+): Promise<EnrichmentResponse> => {
+  const response = await apiClient.get<EnrichmentResponse>(
+    `/analytics/enrich/${ecosystem}/${encodeURIComponent(packageName)}/${encodeURIComponent(version)}`
   );
   return response.data;
 };

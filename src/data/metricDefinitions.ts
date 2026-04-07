@@ -122,6 +122,29 @@ export const SUPPLY_CHAIN_METRICS: Record<string, MetricInfo> = {
   },
 };
 
+// ─── External Enrichment Data ────────────────────────────────────────────────
+export const EXTERNAL_ENRICHMENT_METRICS: Record<string, MetricInfo> = {
+  monthlyDownloads: {
+    name: 'Monthly Downloads',
+    definition: 'The number of times the package was downloaded from its primary registry over the last 30 days. Integrated dynamically via external registry APIs.',
+    formula: 'Downloads = sum(daily_downloads) over 30 days',
+    whyItMatters: 'A high download count indicates significant ecosystem adoption and popularity, serving as a proxy for both maturity and attractiveness as an attack vector.',
+    citation: 'NPM / PyPI Registry APIs',
+    glossaryAnchor: 'monthly-downloads',
+  },
+  scorecardScore: {
+    name: 'OpenSSF Scorecard',
+    definition: 'An automated security health metric that evaluates open source repositories against a set of secure development practices.',
+    formula: 'Score (0.0 to 10.0) based on a weighted average of individual checks (e.g., SAST, Code Review, Fuzzing).',
+    whyItMatters: 'A low score indicates poor security hygiene, making the package a higher risk dependency regardless of its structural placement in the graph.',
+    citation: 'Open Source Security Foundation (OpenSSF)',
+    glossaryAnchor: 'scorecard-score',
+  },
+};
+
+// Merge them for components still expecting everything in SUPPLY_CHAIN_METRICS
+export const ALL_SUPPLY_METRICS = { ...SUPPLY_CHAIN_METRICS, ...EXTERNAL_ENRICHMENT_METRICS };
+
 // ─── Internal Architecture Observatory (Method-Level) ────────────────────────
 
 export const METHOD_METRICS: Record<string, MetricInfo> = {

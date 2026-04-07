@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BookOpen, Search, Microscope, Box, ExternalLink } from 'lucide-react';
-import { SUPPLY_CHAIN_METRICS, METHOD_METRICS } from '../data/metricDefinitions';
+import { SUPPLY_CHAIN_METRICS, METHOD_METRICS, EXTERNAL_ENRICHMENT_METRICS } from '../data/metricDefinitions';
 import type { MetricInfo } from '../components/MetricTooltip';
 
 function MetricCard({ metric, index }: { metric: MetricInfo; index: number }) {
@@ -50,6 +50,7 @@ export default function MetricsGlossary() {
 
   const supplyMetrics = Object.values(SUPPLY_CHAIN_METRICS);
   const methodMetrics = Object.values(METHOD_METRICS);
+  const enrichmentMetrics = Object.values(EXTERNAL_ENRICHMENT_METRICS);
 
   const filterMetrics = (metrics: MetricInfo[]) => {
     if (!searchQuery.trim()) return metrics;
@@ -64,7 +65,8 @@ export default function MetricsGlossary() {
 
   const filteredSupply = filterMetrics(supplyMetrics);
   const filteredMethod = filterMetrics(methodMetrics);
-  const totalResults = filteredSupply.length + filteredMethod.length;
+  const filteredEnrichment = filterMetrics(enrichmentMetrics);
+  const totalResults = filteredSupply.length + filteredMethod.length + filteredEnrichment.length;
 
   return (
     <div className="h-full overflow-y-auto bg-[#0a0a12] text-gray-100 relative">
@@ -131,6 +133,24 @@ export default function MetricsGlossary() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredMethod.map((metric, i) => (
+                <MetricCard key={metric.glossaryAnchor} metric={metric} index={i} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* External Enrichment Section */}
+        {filteredEnrichment.length > 0 && (
+          <section className="mb-12">
+            <div className="flex items-center gap-2 mb-6">
+              <ExternalLink className="w-5 h-5 text-sky-400" />
+              <h2 className="text-lg font-bold text-gray-200 uppercase tracking-wide">
+                External Enrichment Sources
+              </h2>
+              <span className="text-xs text-gray-500 ml-2">Global Data Integration</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredEnrichment.map((metric, i) => (
                 <MetricCard key={metric.glossaryAnchor} metric={metric} index={i} />
               ))}
             </div>

@@ -48,6 +48,14 @@ export interface PackageMetrics {
   blastRadius?: number;
   libyears?: number;
   transitiveDepth?: number;
+  // External enrichment
+  globalFanIn?: number;
+  globalDirectDependents?: number;
+  globalIndirectDependents?: number;
+  monthlyDownloads?: number;
+  scorecardScore?: number;
+  scorecardChecks?: Record<string, number>;
+  sourceRepoUrl?: string;
 }
 
 export interface PackageDetailsResponse {
@@ -75,6 +83,11 @@ export interface TopRiskItem {
   closenessCentrality?: number;
   betweennessCentrality?: number;
   blastRadius?: number;
+  // External enrichment
+  globalFanIn?: number;
+  monthlyDownloads?: number;
+  scorecardScore?: number;
+  sourceRepoUrl?: string;
 }
 
 export interface TopRiskResponse {
@@ -142,4 +155,21 @@ export interface VulnerabilityBreakdownResponse {
     LOW: number;
     UNKNOWN: number;
   };
+}
+
+// Enrichment ---------------------------------------------------------------
+
+export interface EnrichmentResponse {
+  ecosystem: string;
+  package: string;
+  version: string;
+  globalFanIn?: number;
+  globalDirectDependents?: number;
+  globalIndirectDependents?: number;
+  monthlyDownloads?: number;
+  scorecardScore?: number;
+  scorecardChecks?: Record<string, number>;
+  sourceRepoUrl?: string;
+  licenses?: string[];
+  isDeprecated?: boolean;
 }
