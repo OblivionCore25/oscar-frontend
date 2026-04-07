@@ -9,8 +9,8 @@ import type { MetricInfo } from '../components/MetricTooltip';
 
 export const SUPPLY_CHAIN_METRICS: Record<string, MetricInfo> = {
   fanIn: {
-    name: 'Fan-In',
-    definition: 'The number of unique packages in the local cache that declare this package as a direct dependency.',
+    name: 'Fan-In (Dependents)',
+    definition: 'The number of unique packages that declare this package as a direct dependency. Calculations utilize OSV/deps.dev enrichment to reflect the true global ecosystem fan-in, defaulting to local cache visibility if upstream data is unavailable.',
     formula: 'Fan-In = |{ p : p → this_package }|',
     whyItMatters: 'High Fan-In means many packages rely on this one. A vulnerability here would cascade upstream to all dependents.',
     citation: 'Martin, R. C. (2003). Agile Software Development: Principles, Patterns, and Practices.',
@@ -26,7 +26,7 @@ export const SUPPLY_CHAIN_METRICS: Record<string, MetricInfo> = {
   },
   bottleneck: {
     name: 'Bottleneck Score',
-    definition: 'A composite risk indicator calculated by multiplying Fan-In by Fan-Out. Packages that are both heavily depended upon AND heavily dependent carry the highest structural risk.',
+    definition: 'A composite risk indicator calculated by multiplying Fan-In by Fan-Out. Packages that are both heavily depended upon AND heavily dependent carry the highest structural risk. Uses global Fan-In when enrichment data is available.',
     formula: 'Bottleneck = Fan-In × Fan-Out',
     whyItMatters: 'The highest-scoring packages are structural chokepoints — replacing or patching them is simultaneously critical and dangerous.',
     citation: 'OSCAR composite metric.',

@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
-import { Network, AlertTriangle, FlaskConical, Search, BookOpen } from 'lucide-react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { AlertTriangle, Search, BookOpen } from 'lucide-react';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
+  const location = useLocation();
+
   return (
     <div className="flex bg-[#1a1a2e] h-screen w-screen overflow-hidden text-gray-100 font-sans">
       {/* Sidebar Navigation */}
@@ -22,26 +24,15 @@ export function Layout({ children }: LayoutProps) {
         <nav className="flex-1 py-6 px-4 space-y-2">
           <NavLink 
             to="/" 
-            className={({ isActive }) => 
-              `flex items-center px-4 py-3 rounded-md transition-colors ${
+            className={() => {
+              const isActive = location.pathname === '/' || location.pathname.startsWith('/package/');
+              return `flex items-center px-4 py-3 rounded-md transition-colors ${
                 isActive ? 'bg-indigo-900/30 text-indigo-400 font-medium' : 'text-gray-500 hover:bg-[#2a2a35]'
-              }`
-            }
+              }`;
+            }}
           >
             <Search className="w-5 h-5 mr-3" />
-            Package Search
-          </NavLink>
-          
-          <NavLink 
-            to="/graph" 
-            className={({ isActive }) => 
-              `flex items-center px-4 py-3 rounded-md transition-colors ${
-                isActive ? 'bg-indigo-900/30 text-indigo-400 font-medium' : 'text-gray-500 hover:bg-[#2a2a35]'
-              }`
-            }
-          >
-            <Network className="w-5 h-5 mr-3" />
-            Dependency Dashboard
+            Explore
           </NavLink>
           
           <NavLink 
@@ -53,19 +44,7 @@ export function Layout({ children }: LayoutProps) {
             }
           >
             <AlertTriangle className="w-5 h-5 mr-3" />
-            Top Risk
-          </NavLink>
-
-          <NavLink 
-            to="/methods" 
-            className={({ isActive }) => 
-              `flex items-center px-4 py-3 rounded-md transition-colors ${
-                isActive ? 'bg-purple-900/30 text-purple-400 font-medium' : 'text-gray-500 hover:bg-[#2a2a35]'
-              }`
-            }
-          >
-            <FlaskConical className="w-5 h-5 mr-3" />
-            Method Observatory
+            Ecosystem Risks
           </NavLink>
 
           <div className="border-t border-[#2a2a35] my-3" />
@@ -79,7 +58,7 @@ export function Layout({ children }: LayoutProps) {
             }
           >
             <BookOpen className="w-5 h-5 mr-3" />
-            Metrics Glossary
+            Reference
           </NavLink>
         </nav>
       </aside>

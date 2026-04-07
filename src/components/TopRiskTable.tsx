@@ -104,9 +104,9 @@ function TopRiskTableRow({ item }: { item: TopRiskItem }) {
       <td className="px-6 py-4 text-right">
         {item.pageRank != null && (
           <Link
-            to={`/graph?ecosystem=${item.ecosystem}&package=${item.name}&version=${item.version}`}
+            to={`/package/${item.ecosystem}/${encodeURIComponent(item.name)}/${encodeURIComponent(item.version)}`}
             className="inline-flex items-center justify-center p-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-900/30 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-            title="View Graph"
+            title="Explore Package"
           >
             <ArrowRight className="w-4 h-4" />
           </Link>
