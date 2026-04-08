@@ -53,13 +53,8 @@ export default function PackageDetail() {
   const handleExportSbom = (format: 'cyclonedx' | 'spdx') => {
     // Generate the direct download URL for the backend endpoint
     const url = `${import.meta.env.VITE_OSCAR_API_URL}/export/${ecosystem}/${encodeURIComponent(packageName)}/${version}/sbom?format=${format}`;
-    // Use window.open or a dynamically created hidden <a> tag to trigger browser download
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${packageName.replace('/', '_')}-${version}-${format}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // Open in a new tab to avoid navigating away from the current page
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   // Fetch available versions for the version selector
