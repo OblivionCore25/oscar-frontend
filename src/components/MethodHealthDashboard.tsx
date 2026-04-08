@@ -32,10 +32,11 @@ interface MethodHealthDashboardProps {
     nodes: MethodNode[];
     edges: any[];
   };
+  selectedNodeId?: string | null;
   onMethodSelect: (id: string) => void;
 }
 
-export default function MethodHealthDashboard({ data, onMethodSelect }: MethodHealthDashboardProps) {
+export default function MethodHealthDashboard({ data, selectedNodeId, onMethodSelect }: MethodHealthDashboardProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [kindFilter, setKindFilter] = useState<string>('All');
   const [communityFilter, setCommunityFilter] = useState<number | null>(null);
@@ -352,11 +353,17 @@ export default function MethodHealthDashboard({ data, onMethodSelect }: MethodHe
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {paginatedNodes.map((n) => (
+              {paginatedNodes.map((n) => {
+                const isSelected = n.id === selectedNodeId;
+                return (
                 <tr 
                   key={n.id} 
                   onClick={() => onMethodSelect(n.id)}
-                  className="hover:bg-white/[0.02] cursor-pointer transition-colors"
+                  className={`cursor-pointer transition-colors ${
+                    isSelected
+                      ? 'bg-emerald-900/20 border-l-2 border-emerald-500'
+                      : 'hover:bg-white/[0.02] border-l-2 border-transparent'
+                  }`}
                 >
                   <td className="px-4 py-3 max-w-sm overflow-hidden">
                     <div className="flex items-center gap-2">
@@ -415,7 +422,8 @@ export default function MethodHealthDashboard({ data, onMethodSelect }: MethodHe
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               
               {paginatedNodes.length === 0 && (
                 <tr>

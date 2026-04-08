@@ -10,9 +10,9 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
 
   return (
-    <div className="flex bg-[#1a1a2e] h-screen w-screen overflow-hidden text-gray-100 font-sans">
+    <div className="flex bg-[#1a1a2e] h-screen w-screen text-gray-100 font-sans">
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-[#12121a] border-r border-[#2a2a35] flex flex-col shrink-0">
+      <aside className="w-64 bg-[#12121a] border-r border-[#2a2a35] flex flex-col shrink-0 overflow-hidden">
         <div className="h-16 flex items-center px-5 border-b border-[#2a2a35] gap-3">
           <img src="/oscar-logo.png" alt="OSCAR Logo" className="w-8 h-8 shrink-0" />
           <div className="leading-tight">
@@ -64,7 +64,7 @@ export function Layout({ children }: LayoutProps) {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto overflow-x-hidden">
         {children}
       </main>
     </div>

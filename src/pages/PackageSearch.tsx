@@ -61,9 +61,11 @@ export default function PackageSearch() {
         <p className="text-gray-400 text-lg">Search the registry or browse previously ingested dependency ecosystems.</p>
       </header>
 
-      <div className="bg-[#12121a] border border-[#2a2a35] rounded-xl shadow-xl p-8 mb-10 shrink-0 relative overflow-hidden">
-        {/* Subtle decorative glow */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
+      <div className="bg-[#12121a] border border-[#2a2a35] rounded-xl shadow-xl p-8 mb-10 shrink-0 relative">
+        {/* Subtle decorative glow — clipped within its own wrapper so it can't affect dropdown z-stacking */}
+        <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
+        </div>
 
         <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-5 items-end relative z-10">
           <div className="flex-1 w-full md:min-w-[200px]">
@@ -86,8 +88,8 @@ export default function PackageSearch() {
                 ref={inputRef}
                 type="text"
                 value={packageName}
-                onChange={(e) => { setPackageName(e.target.value); setShowSuggestions(true); }}
-                onFocus={() => setShowSuggestions(true)}
+                onChange={(e) => { setPackageName(e.target.value); setShowSuggestions(e.target.value.length > 0); }}
+                onFocus={() => { if (packageName.length > 0) setShowSuggestions(true); }}
                 placeholder="e.g. react or fastapi"
                 required
                 className="w-full h-12 px-4 py-2 bg-[#0a0a12] border border-[#3a3a45] rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-200"
@@ -97,8 +99,8 @@ export default function PackageSearch() {
               )}
             </div>
 
-            {/* Suggestion dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
+            {/* Suggestion dropdown — only shown when user is actively typing */}
+            {showSuggestions && packageName.length >= 1 && suggestions.length > 0 && (
               <div
                 ref={suggestionsRef}
                 className="absolute z-50 mt-2 w-full bg-[#12121a] border border-[#2a2a35] rounded-lg shadow-2xl max-h-64 overflow-y-auto"
@@ -106,7 +108,7 @@ export default function PackageSearch() {
                 <div className="px-4 py-2.5 bg-[#1a1a2e] border-b border-white/5 flex items-center gap-2 sticky top-0">
                   <Database className="w-3.5 h-3.5 text-indigo-400" />
                   <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                    {suggestions.length} in Local Database
+                    {suggestions.length} match{suggestions.length !== 1 ? 'es' : ''} in local database
                   </span>
                 </div>
                 {suggestions.slice(0, 30).map((pkg) => (

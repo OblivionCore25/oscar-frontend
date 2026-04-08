@@ -11,12 +11,14 @@ interface FluidGraphCanvasProps {
   mode: 'dependency' | 'method';
   highlightedNodes?: string[];
   vulnerableNodes?: string[];
+  externalFocusNodeId?: string | null;
   onNodeSelect?: (nodeId: string) => void;
+  onNodeHover?: (node: any | null, event?: MouseEvent) => void;
   onEdgeSelect?: (edge: { source: string; target: string; constraint?: string } | null) => void;
   onEdgeHover?: (edge: any | null, x: number, y: number) => void;
 }
 
-export default function FluidGraphCanvas({ data, mode, highlightedNodes, vulnerableNodes, onNodeSelect, onEdgeSelect, onEdgeHover }: FluidGraphCanvasProps) {
+export default function FluidGraphCanvas({ data, mode, highlightedNodes, vulnerableNodes, externalFocusNodeId, onNodeSelect, onNodeHover, onEdgeSelect, onEdgeHover }: FluidGraphCanvasProps) {
   const fgRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -86,6 +88,20 @@ export default function FluidGraphCanvas({ data, mode, highlightedNodes, vulnera
     });
     return map;
   }, [graphData]);
+
+  // When the parent externally selects a node (e.g. table row click), sync focus + auto-center
+  useEffect(() => {
+    if (externalFocusNodeId === undefined || externalFocusNodeId === null) return;
+    setFocusNodeId(externalFocusNodeId);
+    if (fgRef.current && externalFocusNodeId) {
+      // Find the node in the current data to get its coordinates
+      const node = graphData.nodes.find((n: any) => n.id === externalFocusNodeId);
+      if (node && node.x !== undefined) {
+        fgRef.current.centerAt(node.x, node.y, 700);
+        fgRef.current.zoom(5, 700);
+      }
+    }
+  }, [externalFocusNodeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isMassive = graphData.nodes.length > 300;
 
@@ -269,9 +285,14 @@ export default function FluidGraphCanvas({ data, mode, highlightedNodes, vulnera
         backgroundColor="rgba(0,0,0,0)" // Transparent to let our CSS #12121a shine through
         nodeCanvasObject={paintNode}
         nodeLabel={() => ''} // We draw our own labels or use external tooltips
-        onNodeHover={(node) => {
+        onNodeHover={(node: any) => {
           setHoverNode(node);
           document.body.style.cursor = node ? 'pointer' : 'default';
+          if (onNodeHover) {
+            // Build a synthetic event from the tracked mouse position
+            const syntheticEvent = { clientX: mousePos.x, clientY: mousePos.y } as MouseEvent;
+            onNodeHover(node, node ? syntheticEvent : undefined);
+          }
         }}
         onLinkHover={(link) => {
           if (onEdgeHover) {

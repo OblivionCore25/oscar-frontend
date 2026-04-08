@@ -38,8 +38,8 @@ export default function OverviewTab() {
 
   return (
     <div className="space-y-6">
-      {/* Primary KPI Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* Primary KPI Grid — uses 3 cols on medium screens, 6 on large+ */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <MetricCard
           label="Direct Dependencies"
           value={m.directDependencies}
@@ -83,8 +83,8 @@ export default function OverviewTab() {
         )}
       </div>
 
-      {/* Detailed Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Detailed Metrics Grid — stacks on anything smaller than lg (1024px) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Supply Chain Breakdown */}
         <div className="bg-[#12121a] rounded-xl border border-[#2a2a35] p-6">
           <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider mb-4">Graph Centrality</h3>
@@ -116,7 +116,8 @@ export default function OverviewTab() {
               <div className="flex justify-between items-center border-b border-white/5 pb-2">
                 <span className="text-gray-500">Source Repository</span>
                 <a href={enrichment.sourceRepoUrl} target="_blank" rel="noopener noreferrer"
-                   className="text-sky-400 hover:text-sky-300 font-mono text-xs truncate max-w-[250px]">
+                   className="text-sky-400 hover:text-sky-300 font-mono text-xs truncate max-w-[200px] text-right"
+                   title={enrichment.sourceRepoUrl}>
                   {enrichment.sourceRepoUrl.replace('https://github.com/', '')}
                 </a>
               </div>

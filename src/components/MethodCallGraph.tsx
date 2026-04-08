@@ -1,4 +1,3 @@
-import { useState } from "react";
 import FluidGraphCanvas from "./FluidGraphCanvas";
 
 interface MethodCallGraphProps {
@@ -8,6 +7,7 @@ interface MethodCallGraphProps {
     root?: string;
   };
   highlightedNodes?: string[];
+  focusNodeId?: string | null;
   onNodeSelect?: (nodeId: string | null) => void;
   hideLegend?: boolean;
 }
@@ -15,19 +15,10 @@ interface MethodCallGraphProps {
 export default function MethodCallGraph({
   data,
   highlightedNodes,
+  focusNodeId,
   onNodeSelect,
   hideLegend = false,
 }: MethodCallGraphProps) {
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  if (errorMsg) {
-    return (
-      <div className="w-full h-full bg-red-900/30 text-red-400 font-medium p-6 rounded-lg overflow-auto border border-red-900/50">
-        <h3 className="font-bold text-lg mb-2">Graph Render Crash</h3>
-        <pre className="text-xs whitespace-pre-wrap">{errorMsg}</pre>
-      </div>
-    );
-  }
 
   // Ensure nodes have community_id mapping compatibility
   const normalizedData = {
@@ -45,6 +36,7 @@ export default function MethodCallGraph({
         data={normalizedData}
         mode="method"
         highlightedNodes={highlightedNodes}
+        externalFocusNodeId={focusNodeId}
         onNodeSelect={(id) => onNodeSelect?.(id || null)}
       />
 

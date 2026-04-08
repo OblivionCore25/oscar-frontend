@@ -8,7 +8,7 @@ import OverviewTab from './tabs/OverviewTab';
 import SupplyChainTab from './tabs/SupplyChainTab';
 import SecurityTab from './tabs/SecurityTab';
 import ArchitectureTab from './tabs/ArchitectureTab';
-import { Package, ChevronDown, AlertCircle } from 'lucide-react';
+import { Package, ChevronDown, AlertCircle, Download } from 'lucide-react';
 
 const TABS = [
   { key: 'overview', label: 'Overview' },
@@ -48,6 +48,19 @@ export default function PackageDetail() {
 
   // Version selector state
   const [versionDropdownOpen, setVersionDropdownOpen] = useState(false);
+  const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
+
+  const handleExportSbom = (format: 'cyclonedx' | 'spdx') => {
+    // Generate the direct download URL for the backend endpoint
+    const url = `${import.meta.env.VITE_OSCAR_API_URL}/export/${ecosystem}/${encodeURIComponent(packageName)}/${version}/sbom?format=${format}`;
+    // Use window.open or a dynamically created hidden <a> tag to trigger browser download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${packageName.replace('/', '_')}-${version}-${format}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   // Fetch available versions for the version selector
   const { data: versionList } = useQuery({
@@ -99,56 +112,104 @@ export default function PackageDetail() {
 
   return (
     <PackageProvider ecosystem={ecosystem} packageName={packageName} version={version}>
-      <div className="h-full flex flex-col bg-[#0a0a12] overflow-y-auto">
+      <div className="h-full flex flex-col bg-[#0a0a12]">
         <div className="max-w-[1400px] mx-auto w-full px-6 py-4 flex flex-col flex-1">
 
           {/* Breadcrumbs */}
           <Breadcrumbs segments={breadcrumbSegments} />
 
           {/* Package Header */}
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6 mt-1">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-indigo-500/15 rounded-xl">
-                <Package className="w-6 h-6 text-indigo-400" />
+          <div className="flex flex-col mb-6 mt-1">
+            {/* Row 1: Identity + Export Button */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2.5 bg-indigo-500/15 rounded-xl shrink-0">
+                  <Package className="w-6 h-6 text-indigo-400" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className="bg-indigo-900/40 text-indigo-300 text-[10px] px-2 py-0.5 uppercase tracking-wider rounded-md font-bold shrink-0">
+                      {ecosystem}
+                    </span>
+                    <h1 className="text-xl font-bold text-gray-100 tracking-tight break-all">{packageName}</h1>
+                  </div>
+                  {/* Version Selector */}
+                  <div className="relative mt-0.5">
+                    <button
+                      onClick={() => setVersionDropdownOpen(!versionDropdownOpen)}
+                      className="text-sm text-gray-400 font-mono flex items-center gap-1 hover:text-indigo-400 transition-colors"
+                    >
+                      v{version}
+                      {versionList && <ChevronDown className="w-3.5 h-3.5" />}
+                    </button>
+                    {versionDropdownOpen && versionList && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setVersionDropdownOpen(false)} />
+                        <div className="absolute top-full left-0 mt-1 bg-[#12121a] border border-[#2a2a35] rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto w-48 custom-scrollbar">
+                          {versionList.map(v => (
+                            <button
+                              key={v}
+                              onClick={() => {
+                                setVersionDropdownOpen(false);
+                                navigate(`/package/${ecosystem}/${encodeURIComponent(packageName)}/${encodeURIComponent(v)}?tab=${activeTab}`);
+                              }}
+                              className={`w-full text-left px-3 py-2 text-sm font-mono hover:bg-white/5 transition-colors ${
+                                v === version ? 'text-indigo-400 font-bold bg-indigo-500/10' : 'text-gray-400'
+                              }`}
+                            >
+                              {v}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <span className="bg-indigo-900/40 text-indigo-300 text-[10px] px-2 py-0.5 uppercase tracking-wider rounded-md font-bold">
-                    {ecosystem}
-                  </span>
-                  <h1 className="text-xl font-bold text-gray-100 tracking-tight">{packageName}</h1>
-                </div>
-                {/* Version Selector */}
-                <div className="relative mt-0.5">
-                  <button
-                    onClick={() => setVersionDropdownOpen(!versionDropdownOpen)}
-                    className="text-sm text-gray-400 font-mono flex items-center gap-1 hover:text-indigo-400 transition-colors"
-                  >
-                    v{version}
-                    {versionList && <ChevronDown className="w-3.5 h-3.5" />}
-                  </button>
-                  {versionDropdownOpen && versionList && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setVersionDropdownOpen(false)} />
-                      <div className="absolute top-full left-0 mt-1 bg-[#12121a] border border-[#2a2a35] rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto w-48 custom-scrollbar">
-                        {versionList.map(v => (
-                          <button
-                            key={v}
-                            onClick={() => {
-                              setVersionDropdownOpen(false);
-                              navigate(`/package/${ecosystem}/${encodeURIComponent(packageName)}/${encodeURIComponent(v)}?tab=${activeTab}`);
-                            }}
-                            className={`w-full text-left px-3 py-2 text-sm font-mono hover:bg-white/5 transition-colors ${
-                              v === version ? 'text-indigo-400 font-bold bg-indigo-500/10' : 'text-gray-400'
-                            }`}
-                          >
-                            {v}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
+
+              {/* Export SBOM — always visible on the right, anchored to top of header */}
+              <div className="relative z-40 shrink-0">
+                <button
+                  onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#1a1a24] hover:bg-[#222230] text-gray-200 text-sm font-semibold rounded-lg border border-[#2a2a35] transition-colors whitespace-nowrap"
+                >
+                <Download className="w-4 h-4 text-indigo-400" />
+                Export SBOM
+                <ChevronDown className="w-4 h-4 text-gray-500" />
+              </button>
+              
+              {exportDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setExportDropdownOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-[#12121a] border border-[#2a2a35] rounded-xl shadow-2xl z-50 overflow-hidden origin-top-right animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-4 py-2 border-b border-white/5 bg-black/20">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Format</span>
+                    </div>
+                    <div className="flex flex-col py-1">
+                      <button
+                        onClick={() => {
+                          setExportDropdownOpen(false);
+                          handleExportSbom('cyclonedx');
+                        }}
+                        className="text-left px-4 py-2.5 text-sm font-medium text-gray-300 hover:text-indigo-300 hover:bg-white/5 transition-colors flex items-center justify-between group"
+                      >
+                        CycloneDX 1.5
+                        <span className="text-[10px] text-gray-600 font-mono group-hover:text-indigo-500/.5 border border-transparent group-hover:border-indigo-500/20 px-1.5 py-0.5 rounded transition-colors">JSON</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setExportDropdownOpen(false);
+                          handleExportSbom('spdx');
+                        }}
+                        className="text-left px-4 py-2.5 text-sm font-medium text-gray-300 hover:text-indigo-300 hover:bg-white/5 transition-colors flex items-center justify-between group"
+                      >
+                        SPDX 2.3
+                        <span className="text-[10px] text-gray-600 font-mono group-hover:text-indigo-500/.5 border border-transparent group-hover:border-indigo-500/20 px-1.5 py-0.5 rounded transition-colors">JSON</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
               </div>
             </div>
           </div>

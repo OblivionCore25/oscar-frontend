@@ -10,7 +10,6 @@ type SubView = 'dashboard' | 'topology';
 export default function SupplyChainTab() {
   const { ecosystem, packageName, version } = usePackageIdentity();
   const [subView, setSubView] = useState<SubView>('dashboard');
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [exploreMode, setExploreMode] = useState(false);
   const [exploreEdge, setExploreEdge] = useState<{ source: string; target: string } | null>(null);
 
@@ -19,6 +18,25 @@ export default function SupplyChainTab() {
   const { data: depthsData } = usePackageDepthsQuery({ ecosystem, packageName, version });
   const { data: libyearsData } = usePackageLibyearsQuery({ ecosystem, packageName, version });
   const { data: vulnData } = useVulnerabilityQuery({ ecosystem, packageName, version });
+
+  // Extract a flat list of vulnerable package NAMES (no version) from vulnData for node highlighting.
+  // Breakdown keys are "pkg@ver" (e.g. "jinja2@3.1.2" or "@babel/core@7.0.0").
+  // isNodeVulnerable() in FluidGraphCanvas strips versions from node IDs before looking up,
+  // so this set must contain bare package names to match correctly.
+  const vulnerableNodeIds = useMemo(() => {
+    if (!vulnData?.breakdown) return [];
+    return Object.keys(vulnData.breakdown)
+      .filter((key) => vulnData.breakdown[key] && vulnData.breakdown[key].length > 0)
+      .map((key) => {
+        // Scoped: @scope/pkg@ver → @scope/pkg
+        if (key.startsWith('@')) {
+          const lastAt = key.lastIndexOf('@');
+          return lastAt > 0 ? key.slice(0, lastAt) : key;
+        }
+        // Regular: pkg@ver → pkg
+        return key.split('@')[0];
+      });
+  }, [vulnData]);
 
   // Progress tracking
   const maxPctRef = useRef(0);
@@ -142,8 +160,7 @@ export default function SupplyChainTab() {
         <div className="flex-1 rounded-xl border border-[#2a2a35] overflow-hidden bg-[#0a0a12] relative" style={{ minHeight: '500px' }}>
           <GraphCanvas
             data={explorerSubgraph || data}
-            onNodeSelect={setSelectedNode}
-            selectedNode={selectedNode}
+            vulnerableNodes={vulnerableNodeIds}
           />
         </div>
       )}

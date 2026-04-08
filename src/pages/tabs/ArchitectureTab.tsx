@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePackageIdentity } from '../../context/PackageContext';
 import { useMethodMeta, useMethodHotspots, useMethodCommunities, useMethodGraph, ingestMethodData } from '../../hooks/useMethodQuery';
@@ -23,6 +23,19 @@ export default function ArchitectureTab() {
   const { data: hotspots, isLoading: hotspotsLoading } = useMethodHotspots(projectSlug, 50);
   const { data: communities } = useMethodCommunities(projectSlug);
   const { data: graphData, isLoading: graphLoading } = useMethodGraph(projectSlug, subView === 'callgraph');
+
+  // Compute the selected method's direct neighbors (fan-in + fan-out) for graph highlight
+  const selectedNeighborhood = useMemo(() => {
+    if (!selectedNodeId || !graphData) return undefined;
+    const neighbors = new Set([selectedNodeId]);
+    graphData.edges.forEach((e: any) => {
+      const src = e.source_id || e.source;
+      const tgt = e.target_id || e.target;
+      if (src === selectedNodeId) neighbors.add(tgt);
+      if (tgt === selectedNodeId) neighbors.add(src);
+    });
+    return [...neighbors];
+  }, [selectedNodeId, graphData]);
 
   const handleIngest = useCallback(async () => {
     if (!packageName) return;
@@ -193,7 +206,7 @@ export default function ArchitectureTab() {
         </div>
       )}
 
-      {/* Call Graph Sub-View */}
+      {/* Call Graph Sub-View: graph + always-visible methods table */}
       {subView === 'callgraph' && (
         graphLoading ? (
           <div className="flex flex-col items-center justify-center h-64">
@@ -202,19 +215,48 @@ export default function ArchitectureTab() {
           </div>
         ) : graphData ? (
           <div className="flex flex-col gap-4">
-            <div className="rounded-xl border border-[#2a2a35] overflow-hidden bg-[#0a0a12]" style={{ minHeight: '500px' }}>
+            {/* Graph — auto-focuses on selected method */}
+            <div
+              className="rounded-xl border border-[#2a2a35] overflow-hidden bg-[#0a0a12] relative"
+              style={{ minHeight: selectedNodeId ? '380px' : '500px' }}
+            >
+              {selectedNodeId && (
+                <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-[#12121a]/90 backdrop-blur-sm border border-emerald-500/30 rounded-lg px-3 py-1.5 text-xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-emerald-300 font-mono">
+                    {graphData.nodes.find((n: any) => n.id === selectedNodeId)?.name ?? selectedNodeId}
+                  </span>
+                  <button
+                    onClick={() => setSelectedNodeId(null)}
+                    className="ml-1 text-gray-500 hover:text-gray-300 transition-colors"
+                    title="Clear focus"
+                  >✕</button>
+                </div>
+              )}
               <MethodCallGraph
                 data={graphData}
                 onNodeSelect={setSelectedNodeId}
-                highlightedNodes={selectedNodeId ? [selectedNodeId] : undefined}
+                highlightedNodes={selectedNeighborhood}
+                focusNodeId={selectedNodeId}
               />
             </div>
-            {selectedNodeId && graphData?.nodes && (
+
+            {/* Methods Table — always visible */}
+            <div className="rounded-xl border border-[#2a2a35] overflow-hidden" style={{ minHeight: '420px' }}>
+              <div className="px-5 py-3 bg-[#0a0a12] border-b border-[#2a2a35] flex items-center justify-between">
+                <h3 className="text-sm font-bold text-gray-200 flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-emerald-400" />
+                  Method Call Table
+                  <span className="text-xs text-gray-500 font-normal">— click a row to focus the call graph</span>
+                </h3>
+                <span className="text-xs text-gray-500">{graphData.nodes.length} methods</span>
+              </div>
               <MethodHealthDashboard
                 data={graphData}
-                onMethodSelect={setSelectedNodeId}
+                selectedNodeId={selectedNodeId}
+                onMethodSelect={(id) => setSelectedNodeId(id === selectedNodeId ? null : id)}
               />
-            )}
+            </div>
           </div>
         ) : (
           <div className="text-center py-16 text-gray-500">No call graph data available.</div>
@@ -260,13 +302,13 @@ export default function ArchitectureTab() {
                       <td className="px-4 py-3 font-mono text-gray-200 truncate max-w-[300px]" title={h.method.name}>
                         {h.method.name}
                       </td>
-                      <td className="px-4 py-3 text-center text-emerald-400 font-mono">{h.metrics.in_degree}</td>
-                      <td className="px-4 py-3 text-center text-blue-400 font-mono">{h.metrics.out_degree}</td>
-                      <td className="px-4 py-3 text-center text-amber-400 font-mono">{h.metrics.cyclomatic_complexity ?? '—'}</td>
+                      <td className="px-4 py-3 text-center text-emerald-400 font-mono">{h.metrics.fan_in ?? 0}</td>
+                      <td className="px-4 py-3 text-center text-blue-400 font-mono">{h.metrics.fan_out ?? 0}</td>
+                      <td className="px-4 py-3 text-center text-amber-400 font-mono">{h.metrics.complexity ?? '—'}</td>
                       <td className="px-4 py-3 text-center text-purple-400 font-mono">{h.metrics.betweenness_centrality?.toFixed(4) ?? '—'}</td>
                       <td className="px-4 py-3 text-center text-indigo-400 font-mono">{h.metrics.blast_radius ?? '—'}</td>
                       <td className="px-4 py-3 text-right font-bold text-rose-400 font-mono">
-                        {h.composite_risk > 1000 ? `${(h.composite_risk / 1000).toFixed(1)}k` : Math.round(h.composite_risk)}
+                        {h.composite_risk > 1000 ? `${(h.composite_risk / 1000).toFixed(1)}k` : h.composite_risk.toFixed(1)}
                       </td>
                     </tr>
                   ))}
@@ -293,11 +335,16 @@ export default function ArchitectureTab() {
                   <span className="text-xs text-gray-500 font-mono">{(members as any[]).length} members</span>
                 </div>
                 <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
-                  {(members as any[]).slice(0, 20).map((m: any) => (
-                    <div key={m.id || m} className="text-xs font-mono text-gray-400 truncate px-2 py-1 rounded bg-white/[0.02]">
-                      {m.id || m.name || m}
-                    </div>
-                  ))}
+                  {(members as any[]).slice(0, 20).map((m: any, i: number) => {
+                    const methodNode = m.method || m;
+                    const id = methodNode.id || methodNode.name || `unknown-${i}`;
+                    const label = methodNode.name || id;
+                    return (
+                      <div key={id} className="text-xs font-mono text-gray-400 truncate px-2 py-1 rounded bg-white/[0.02]" title={id}>
+                        {label}
+                      </div>
+                    );
+                  })}
                   {(members as any[]).length > 20 && (
                     <div className="text-xs text-gray-600 px-2 py-1">+{(members as any[]).length - 20} more…</div>
                   )}
