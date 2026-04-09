@@ -10,6 +10,10 @@ import {
   Filter,
   Circle, Square, Triangle, Hexagon, Octagon, Box, Database, Cpu, Cloud, Star
 } from 'lucide-react';
+import { usePackageIdentity } from '../context/PackageContext';
+import { useGitFileChurn } from '../hooks/useMethodQuery';
+import MetricTooltip from './MetricTooltip';
+import { METHOD_METRICS } from '../data/metricDefinitions';
 
 interface MethodNode {
   id: string;
@@ -25,6 +29,10 @@ interface MethodNode {
   community_id?: number;
   loc?: number;
   is_orphan?: boolean;
+  change_frequency?: number;
+  author_count?: number;
+  last_modified?: string | null;
+  git_scope?: 'method' | 'file' | null;
 }
 
 interface MethodHealthDashboardProps {
@@ -74,6 +82,17 @@ export default function MethodHealthDashboard({ data, selectedNodeId, onMethodSe
   // --- 2. Filter & Calculate Risk Score ---
   // Risk Score = Complexity * Blast Radius * Centrality 
   // (using a base of +1 to avoid 0 cancellation)
+  const { projectSlug } = usePackageIdentity();
+  const { data: fileChurns } = useGitFileChurn(projectSlug);
+
+  const churnMap = useMemo(() => {
+    const map = new Map();
+    if (fileChurns) {
+      fileChurns.forEach((fc: any) => map.set(fc.file_path, fc));
+    }
+    return map;
+  }, [fileChurns]);
+
   const mappedNodes = useMemo(() => {
     return data.nodes.map(n => {
       const cmp = Math.max(1, n.complexity || 1);
@@ -82,12 +101,20 @@ export default function MethodHealthDashboard({ data, selectedNodeId, onMethodSe
       // Heuristic risk score mapping if external value provided wasn't pre-computed
       const riskScore = cmp * br * Math.max(0.001, cent * 100); 
 
+      // Heuristic client-side join (Suffix matching for monorepos)
+      let churn = churnMap.get(n.file_path);
+      if (!churn && fileChurns) {
+        churn = fileChurns.find((fc: any) => fc.file_path.endsWith('/' + n.file_path) || fc.file_path === n.file_path);
+      }
+
       return {
         ...n,
-        risk_score: riskScore
+        risk_score: riskScore,
+        change_frequency: churn ? churn.commits : undefined,
+        author_count: churn ? churn.author_count : undefined
       };
     });
-  }, [data.nodes]);
+  }, [data.nodes, churnMap]);
 
   const filteredNodes = useMemo(() => {
     return mappedNodes.filter(n => {
@@ -328,27 +355,39 @@ export default function MethodHealthDashboard({ data, selectedNodeId, onMethodSe
                 </th>
                 <th className="px-4 py-3 font-semibold group cursor-pointer w-32" onClick={() => requestSort('complexity')}>
                   <div className="flex justify-between items-center">
-                    <span>Complexity</span>
+                    <MetricTooltip metric={METHOD_METRICS.methodComplexity}><span className="border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px]">Complexity</span></MetricTooltip>
                     <SortIcon columnKey="complexity" />
                   </div>
                 </th>
                 <th className="px-4 py-3 font-semibold group cursor-pointer w-32" onClick={() => requestSort('blast_radius')}>
                   <div className="flex justify-between items-center">
-                    <span>Blast Rad.</span>
+                    <MetricTooltip metric={METHOD_METRICS.methodBlastRadius}><span className="border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px]">Blast Rad.</span></MetricTooltip>
                     <SortIcon columnKey="blast_radius" />
+                  </div>
+                </th>
+                <th className="px-4 py-3 font-semibold group cursor-pointer w-24 text-center" onClick={() => requestSort('change_frequency')}>
+                  <div className="flex flex-col items-center justify-center text-[10px]">
+                    <MetricTooltip metric={METHOD_METRICS.methodChangeFrequency}><span className="text-xs mb-0.5 border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px]">File Churn</span></MetricTooltip>
+                    <SortIcon columnKey="change_frequency" />
+                  </div>
+                </th>
+                <th className="px-4 py-3 font-semibold group cursor-pointer w-20 text-center" onClick={() => requestSort('author_count')}>
+                  <div className="flex flex-col items-center justify-center text-[10px]">
+                    <MetricTooltip metric={METHOD_METRICS.methodAuthorCount}><span className="text-xs mb-0.5 border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px]">File Auth.</span></MetricTooltip>
+                    <SortIcon columnKey="author_count" />
                   </div>
                 </th>
                 <th className="px-4 py-3 font-semibold group cursor-pointer w-24" onClick={() => requestSort('fan_in')}>
                   <div className="flex flex-col items-center justify-center text-[10px]">
-                    <span className="text-xs mb-0.5">Fan I/O</span>
+                    <MetricTooltip metric={METHOD_METRICS.fanIO}><span className="text-xs mb-0.5 border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px]">Fan I/O</span></MetricTooltip>
                     <SortIcon columnKey="fan_in" />
                   </div>
                 </th>
                 <th className="px-4 py-3 font-semibold group cursor-pointer w-32 text-center" onClick={() => requestSort('community_id')}>
-                  Community <SortIcon columnKey="community_id" />
+                  <MetricTooltip metric={METHOD_METRICS.communities}><span className="border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px]">Community</span></MetricTooltip> <SortIcon columnKey="community_id" />
                 </th>
                 <th className="px-4 py-3 font-semibold group cursor-pointer w-28 text-right" onClick={() => requestSort('risk_score')}>
-                  Risk Score <SortIcon columnKey="risk_score" />
+                  <MetricTooltip metric={METHOD_METRICS.compositeRisk}><span className="border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px]">Risk Score</span></MetricTooltip> <SortIcon columnKey="risk_score" />
                 </th>
               </tr>
             </thead>
@@ -399,6 +438,37 @@ export default function MethodHealthDashboard({ data, selectedNodeId, onMethodSe
                           style={{ width: `${Math.min(100, ((n.blast_radius || 0) / maxBlastRadius) * 100)}%` }}
                         />
                       </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-center items-center">
+                      {n.change_frequency !== undefined && n.change_frequency > 0 ? (
+                        <span
+                          className={`font-mono text-xs font-bold px-2 py-0.5 rounded ${
+                            n.change_frequency > 20 ? 'bg-rose-500/20 text-rose-400' :
+                            n.change_frequency >= 5 ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'
+                          }`}
+                          title={`File-level git churn (commits in analysis window for ${n.file_path})`}
+                        >
+                          {n.change_frequency}
+                        </span>
+                      ) : (
+                        <span className="text-gray-600 font-mono text-xs">—</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-center items-center">
+                      {n.author_count !== undefined && n.author_count > 0 ? (
+                        <span
+                          className={`font-mono text-xs text-sky-400 font-bold`}
+                          title={`Unique authors who touched ${n.file_path}`}
+                        >
+                          {n.author_count}
+                        </span>
+                      ) : (
+                        <span className="text-gray-600 font-mono text-xs">—</span>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center">

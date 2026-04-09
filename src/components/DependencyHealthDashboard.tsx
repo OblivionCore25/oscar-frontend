@@ -4,6 +4,8 @@ import {
   CheckCircle2, Lock, ShieldAlert, ShieldCheck
 } from 'lucide-react';
 import type { TransitiveGraphResponse, PackageDetailsResponse, VulnerabilityBreakdownResponse } from '../types/api';
+import MetricTooltip from './MetricTooltip';
+import { ALL_SUPPLY_METRICS } from '../data/metricDefinitions';
 
 interface DependencyHealthDashboardProps {
   data: TransitiveGraphResponse;
@@ -164,7 +166,9 @@ export default function DependencyHealthDashboard({ data, metrics, depths, libye
              <div className="bg-[#12121a] p-4 rounded-xl border border-white/5 shadow-sm">
                 <div className="flex items-center text-slate-400 mb-1">
                    <Network className="w-4 h-4 mr-2" />
-                   <span className="text-xs font-semibold uppercase tracking-wider">Direct Deps</span>
+                   <MetricTooltip metric={ALL_SUPPLY_METRICS.fanOut}>
+                     <span className="text-xs font-semibold uppercase tracking-wider border-b border-dashed border-gray-600 hover:border-gray-400 pb-[1px] transition-colors">Direct Deps</span>
+                   </MetricTooltip>
                 </div>
                 <div className="text-2xl font-bold text-slate-100">{m?.directDependencies ?? '-'}</div>
              </div>
@@ -172,7 +176,9 @@ export default function DependencyHealthDashboard({ data, metrics, depths, libye
              <div className="bg-[#12121a] p-4 rounded-xl border border-white/5 shadow-sm">
                 <div className="flex items-center text-slate-400 mb-1">
                    <Layers className="w-4 h-4 mr-2" />
-                   <span className="text-xs font-semibold uppercase tracking-wider">Transitive Depth</span>
+                   <MetricTooltip metric={ALL_SUPPLY_METRICS.transitiveDepth}>
+                     <span className="text-xs font-semibold uppercase tracking-wider border-b border-dashed border-gray-600 hover:border-gray-400 pb-[1px] transition-colors">Transitive Depth</span>
+                   </MetricTooltip>
                 </div>
                 <div className="flex items-end gap-2">
                    <div className="text-2xl font-bold text-slate-100">{m?.transitiveDepth ?? '-'}</div>
@@ -188,7 +194,9 @@ export default function DependencyHealthDashboard({ data, metrics, depths, libye
                 <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/10 rounded-bl-full flex items-center justify-center blur-lg"></div>
                 <div className="flex items-center text-slate-400 mb-1 relative z-10">
                    <Watch className="w-4 h-4 mr-2 text-amber-500/70" />
-                   <span className="text-xs font-semibold uppercase tracking-wider">Libyears Debt</span>
+                   <MetricTooltip metric={ALL_SUPPLY_METRICS.libyears}>
+                     <span className="text-xs font-semibold uppercase tracking-wider border-b border-dashed border-gray-600 hover:border-gray-400 pb-[1px] transition-colors">Libyears Debt</span>
+                   </MetricTooltip>
                 </div>
                 <div className="flex items-end gap-2 relative z-10">
                    <div className="text-2xl font-bold text-slate-100">{m?.libyears !== undefined ? m.libyears.toFixed(1) : '-'}</div>
@@ -203,7 +211,9 @@ export default function DependencyHealthDashboard({ data, metrics, depths, libye
              <div className="bg-[#12121a] p-4 rounded-xl border border-white/5 shadow-sm">
                 <div className="flex items-center text-slate-400 mb-1">
                    <AlertTriangle className="w-4 h-4 mr-2 text-rose-400/70" />
-                   <span className="text-xs font-semibold uppercase tracking-wider">Diamond Conflicts</span>
+                   <MetricTooltip metric={ALL_SUPPLY_METRICS.diamondConflicts}>
+                     <span className="text-xs font-semibold uppercase tracking-wider border-b border-dashed border-gray-600 hover:border-gray-400 pb-[1px] transition-colors">Diamond Conflicts</span>
+                   </MetricTooltip>
                 </div>
                 <div className="text-2xl font-bold text-slate-100">{m?.diamondCount ?? '-'}</div>
              </div>
@@ -212,7 +222,9 @@ export default function DependencyHealthDashboard({ data, metrics, depths, libye
                 {vulnData && vulnData.totalVulns > 0 && <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/15 rounded-bl-full blur-lg"></div>}
                 <div className="flex items-center text-slate-400 mb-1 relative z-10">
                    <ShieldAlert className="w-4 h-4 mr-2 text-rose-400/70" />
-                   <span className="text-xs font-semibold uppercase tracking-wider">Vulnerabilities</span>
+                   <MetricTooltip metric={ALL_SUPPLY_METRICS.vulnerabilities}>
+                     <span className="text-xs font-semibold uppercase tracking-wider border-b border-dashed border-gray-600 hover:border-gray-400 pb-[1px] transition-colors">Vulnerabilities</span>
+                   </MetricTooltip>
                 </div>
                 {vulnData ? (
                   <div className="relative z-10">
@@ -238,7 +250,9 @@ export default function DependencyHealthDashboard({ data, metrics, depths, libye
                title="Click to filter Unconstrained edges"
              >
                 <div className="flex justify-between items-center mb-2">
-                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-indigo-400 transition-colors">Constraint Health</span>
+                   <MetricTooltip metric={ALL_SUPPLY_METRICS.constraintHealth}>
+                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-indigo-400 transition-colors border-b border-dashed border-gray-600/50 hover:border-gray-400 pb-[1px]">Constraint Health</span>
+                   </MetricTooltip>
                    {constraintStats.unconstrained > 0 ? <ShieldAlert className="w-4 h-4 text-rose-500" /> : <ShieldCheck className="w-4 h-4 text-emerald-500" />}
                 </div>
                 <div className="flex h-3 w-full rounded-full overflow-hidden bg-[#0a0a12] border border-white/10 mb-2">
@@ -296,19 +310,19 @@ export default function DependencyHealthDashboard({ data, metrics, depths, libye
                     Required By <SortIcon columnKey="source" />
                   </th>
                   <th className="px-4 py-3 font-semibold group cursor-pointer" onClick={() => requestSort('riskPriority')}>
-                    Constraint <SortIcon columnKey="riskPriority" />
+                    <MetricTooltip metric={ALL_SUPPLY_METRICS.constraintHealth}><span className="border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px]">Constraint</span></MetricTooltip> <SortIcon columnKey="riskPriority" />
                   </th>
                   <th className="px-4 py-3 font-semibold group cursor-pointer text-center" onClick={() => requestSort('depth')}>
-                    Depth <SortIcon columnKey="depth" />
+                    <MetricTooltip metric={ALL_SUPPLY_METRICS.transitiveDepth}><span className="border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px]">Depth</span></MetricTooltip> <SortIcon columnKey="depth" />
                   </th>
                   <th className="px-4 py-3 font-semibold group cursor-pointer text-center" onClick={() => requestSort('libyears')}>
-                    Libyears <SortIcon columnKey="libyears" />
+                    <MetricTooltip metric={ALL_SUPPLY_METRICS.libyears}><span className="border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px]">Libyears</span></MetricTooltip> <SortIcon columnKey="libyears" />
                   </th>
                   <th className="px-4 py-3 font-semibold group cursor-pointer text-center" onClick={() => requestSort('localFanIn')}>
-                    Local Fan-In <SortIcon columnKey="localFanIn" />
+                    <MetricTooltip metric={ALL_SUPPLY_METRICS.fanIn}><span className="border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px]">Local Fan-In</span></MetricTooltip> <SortIcon columnKey="localFanIn" />
                   </th>
                   <th className="px-4 py-3 font-semibold group cursor-pointer text-center" onClick={() => requestSort('vulnCount')}>
-                    CVEs <SortIcon columnKey="vulnCount" />
+                    <MetricTooltip metric={ALL_SUPPLY_METRICS.vulnerabilities}><span className="border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px]">CVEs</span></MetricTooltip> <SortIcon columnKey="vulnCount" />
                   </th>
                 </tr>
               </thead>

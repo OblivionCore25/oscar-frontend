@@ -36,6 +36,10 @@ export function libyearsColor(years: number | undefined | null): string {
 }
 
 /** Derive a method observatory project slug from a package name */
-export function toProjectSlug(packageName: string): string {
-  return packageName.replace('@', '').replace('/', '__');
+export function toProjectSlug(packageName: string, ecosystem?: string): string {
+  let slug = packageName.replace('@', '').replace('/', '__');
+  if (ecosystem && ecosystem.toLowerCase() === 'pypi') {
+    slug = slug.toLowerCase();
+  }
+  return slug;
 }

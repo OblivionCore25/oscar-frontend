@@ -120,6 +120,18 @@ export const SUPPLY_CHAIN_METRICS: Record<string, MetricInfo> = {
     citation: 'Abate, P. et al. (2012). Dependency Solving: A Separate Concern in Component Evolution Management.',
     glossaryAnchor: 'diamond-conflicts',
   },
+  vulnerabilities: {
+    name: 'Transitive Vulnerabilities',
+    definition: 'Known Common Vulnerabilities and Exposures (CVEs) actively affecting this package or its sub-dependencies.',
+    whyItMatters: 'Unpatched high-severity CVEs in deep dependencies are a primary vector for supply-chain attacks, inheriting upstream into your application.',
+    glossaryAnchor: 'vulnerabilities',
+  },
+  constraintHealth: {
+    name: 'Constraint Health',
+    definition: 'An assessment of the strictness of the version constraints mapping packages to their dependencies.',
+    whyItMatters: 'Unconstrained dependencies (e.g. `*` or `latest`) expose you to immediate breaking changes and compromised releases. Pinned edges are secure but block critical patches.',
+    glossaryAnchor: 'constraint-health',
+  },
 };
 
 // ─── External Enrichment Data ────────────────────────────────────────────────
@@ -228,6 +240,13 @@ export const METHOD_METRICS: Record<string, MetricInfo> = {
     whyItMatters: 'A method with high Fan-Out acts as a heavy coordinator/facade. It is highly coupled to the rest of the system and sensitive to changes in upstream logic.',
     glossaryAnchor: 'method-fan-out',
   },
+  fanIO: {
+    name: 'Fan I/O Ratio',
+    definition: 'The distribution ratio representing inbound invocations to outbound invocations.',
+    formula: 'Fan-In / Fan-Out',
+    whyItMatters: 'High Fan-In/low Fan-Out indicates a trusted core utility. High Fan-Out/low Fan-In indicates a brittle orchestrator bridging multiple systems.',
+    glossaryAnchor: 'fan-io',
+  },
   methodBlastRadius: {
     name: 'Method Blast Radius',
     definition: 'The total count of all internal methods transitively downstream from this method in the local call graph.',
@@ -236,11 +255,25 @@ export const METHOD_METRICS: Record<string, MetricInfo> = {
     citation: 'OSCAR composite metric.',
     glossaryAnchor: 'method-blast-radius',
   },
+  methodChangeFrequency: {
+    name: 'Change Frequency (Git Churn)',
+    definition: 'The number of commits that touched this method\'s enclosing file in the last 365 days. Data extracted from the upstream Git repository via blobless clone log parsing.',
+    formula: 'Churn = count_commits(file, 365d)',
+    whyItMatters: 'High churn indicates unstable or actively developed code. A highly complex and central method is much riskier if it is also modified frequently (high churn).',
+    citation: 'Nagappan, N. & Ball, T. (2005). Use of relative code churn measures to predict system defect density.',
+    glossaryAnchor: 'method-change-frequency',
+  },
+  methodAuthorCount: {
+    name: 'Author Count',
+    definition: 'Number of unique authors who have committed changes to the method\'s enclosing file over the last 365 days.',
+    whyItMatters: 'Files touched by many different authors often suffer from lack of singular ownership and inconsistent architectural adherence, increasing defect risk.',
+    glossaryAnchor: 'method-author-count',
+  },
   compositeRisk: {
     name: 'Composite Risk Score',
-    definition: 'An aggregated algorithmic risk assessment for identifying architectural hotspots.',
-    formula: 'Risk Score = Complexity × Centrality × Blast Radius',
-    whyItMatters: 'This focuses code review and refactoring efforts on the most dangerous methods: those that are complex, structurally central, and command a large blast radius.',
+    definition: 'An aggregated algorithmic risk assessment for identifying architectural hotspots, balancing structural metrics with behavioral (Git) history if available.',
+    formula: 'Risk Score = Complexity × Centrality × Blast Radius × max(log₂(1 + Change Frequency), 1.0)',
+    whyItMatters: 'This focuses code review and refactoring efforts on the most dangerous methods: those that are complex, structurally central, heavily impactful downstream, and actively changing.',
     citation: 'OSCAR composite metric.',
     glossaryAnchor: 'composite-risk',
   },

@@ -24,7 +24,7 @@ export function PackageProvider({ ecosystem, packageName, version, children }: P
     ecosystem,
     packageName,
     version,
-    projectSlug: toProjectSlug(packageName),
+    projectSlug: toProjectSlug(packageName, ecosystem),
   };
 
   return (
