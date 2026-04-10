@@ -1,8 +1,96 @@
 import { usePackageIdentity } from '../../context/PackageContext';
 import { usePackageQuery } from '../../hooks/usePackageQuery';
 import { useVulnerabilityQuery } from '../../hooks/useGraphQuery';
+import { useReachability } from '../../hooks/useMethodQuery';
 import { scorecardColor } from '../../utils/format';
-import { Loader2, Shield, ShieldAlert, ExternalLink } from 'lucide-react';
+import { Loader2, Shield, ShieldAlert, ExternalLink, Activity } from 'lucide-react';
+import React, { useMemo } from 'react';
+
+function PackageVulnRow({ pkg, vulns, ecosystem }: { pkg: string, vulns: any[], ecosystem: string }) {
+  const [basePkg] = pkg.split('@'); 
+  
+  // Collect all unique affected functions for this package
+  const affectedFunctions = useMemo(() => {
+    return Array.from(new Set(vulns.flatMap(v => v.affectedFunctions || [])));
+  }, [vulns]);
+
+  // Construct standard URL slug for method observatory 
+  let slug = basePkg.replace('@', '').replace('/', '__');
+  if (ecosystem === 'pypi') slug = slug.toLowerCase();
+
+  const { data: reachData } = useReachability(slug, affectedFunctions, affectedFunctions.length > 0);
+
+  const reachMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (reachData?.results) {
+      for (const r of reachData.results) {
+        map.set(r.function, r.status);
+      }
+    }
+    return map;
+  }, [reachData]);
+
+  return (
+    <div className="bg-[#0a0a12] rounded-lg border border-white/5 p-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-mono text-sm font-bold text-gray-200 truncate">{pkg}</span>
+        <span className="text-xs text-rose-400 font-bold">{vulns.length} CVE{vulns.length > 1 ? 's' : ''}</span>
+      </div>
+      <div className="space-y-2">
+        {vulns.map((v: any) => {
+          let hasFunctions = v.affectedFunctions && v.affectedFunctions.length > 0;
+          return (
+            <div key={v.id} className="flex flex-col text-xs bg-white/[0.02] border border-white/[0.03] rounded px-2.5 py-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-rose-300 font-bold">{v.id}</span>
+                <span className={`px-1.5 py-0.5 rounded font-bold uppercase tracking-wider text-[9px] ${
+                  v.severity === 'CRITICAL' ? 'bg-red-500/30 text-red-300 border border-red-500/30' :
+                  v.severity === 'HIGH' ? 'bg-orange-500/30 text-orange-300 border border-orange-500/30' :
+                  v.severity === 'MODERATE' ? 'bg-amber-500/30 text-amber-300 border border-amber-500/30' :
+                  'bg-sky-500/30 text-sky-300 border border-sky-500/30'
+                }`}>
+                  {v.severity}
+                </span>
+              </div>
+              
+              {hasFunctions && (
+                <div className="mt-2.5 mb-1 flex flex-wrap gap-1.5">
+                  {v.affectedFunctions.map((func: string) => {
+                    const status = reachMap.get(func);
+                    
+                    let badgeClass = "bg-white/5 text-gray-500 border-white/10";
+                    let icon = "⚪";
+                    let titleText = `Function: ${func} (AST Resolution Pending or Missing)`;
+                    
+                    if (status === "REACHABLE") { 
+                      badgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/20"; 
+                      icon = "🔴"; 
+                      titleText = `Function: ${func} (Confirmed Reachable from Entry Point)`;
+                    } else if (status === "UNREACHABLE") { 
+                      badgeClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"; 
+                      icon = "🟢"; 
+                      titleText = `Function: ${func} (Dead Code / Unreachable)`;
+                    } else if (status === "UNKNOWN") {
+                      badgeClass = "bg-amber-500/10 text-amber-400 border-amber-500/20"; 
+                      icon = "⚪"; 
+                      titleText = `Function: ${func} (Low AST Resolution Rate - Assume Reachable)`;
+                    }
+                    
+                    return (
+                      <span key={func} title={titleText} className={`px-1.5 py-0.5 border rounded text-[10px] font-mono cursor-help flex items-center transition-colors hover:brightness-125 ${badgeClass}`}>
+                        <span className="mr-1 text-[8px]">{icon}</span> {func}()
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function SecurityTab() {
   const { ecosystem, packageName, version } = usePackageIdentity();
@@ -88,11 +176,11 @@ export default function SecurityTab() {
       </div>
 
       {/* Vulnerability Breakdown Panel */}
-      <div className="bg-[#12121a] rounded-xl border border-[#2a2a35] overflow-hidden">
+      <div className="bg-[#12121a] rounded-xl border border-[#2a2a35] flex flex-col h-full overflow-hidden">
         <div className="bg-gradient-to-r from-[#1c1c28] to-[#12121a] px-6 py-4 border-b border-[#2a2a35] flex items-center justify-between">
           <div className="flex items-center">
             <ShieldAlert className="w-5 h-5 text-rose-400 mr-2" />
-            <h2 className="font-bold text-gray-100 tracking-wide text-sm uppercase">Known Vulnerabilities</h2>
+            <h2 className="font-bold text-gray-100 tracking-wide text-sm uppercase">Transitive Vulnerabilities</h2>
           </div>
           {vulnData && (
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
@@ -104,55 +192,48 @@ export default function SecurityTab() {
         </div>
 
         {vulnData && vulnData.totalVulns > 0 ? (
-          <div className="p-6 space-y-4">
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* KPI Banner for Reachability Engine */}
+            <div className="bg-[#1a1a24] border-b border-[#2a2a35] px-6 py-3 flex items-start">
+               <div className="bg-sky-500/20 p-2 rounded-lg mr-3 mt-0.5">
+                   <Activity className="w-4 h-4 text-sky-400" />
+               </div>
+               <div>
+                   <h3 className="text-xs font-bold text-sky-300 uppercase tracking-wide">Method Reachability Engine</h3>
+                   <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">
+                     OSCAR calculates AST path resolutions mapping transitive CVEs against public class endpoints. Functions marked 🟢 Unreachable are mathematically inert. 
+                   </p>
+               </div>
+            </div>
+
             {/* Severity Summary */}
-            <div className="flex gap-2 flex-wrap">
+            <div className="px-6 py-4 flex gap-2 flex-wrap border-b border-white/5">
               {vulnData.severityCounts.CRITICAL > 0 && (
-                <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-red-500/20 text-red-300 border border-red-500/30">
+                <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded font-bold bg-red-500/20 text-red-300 border border-red-500/30">
                   {vulnData.severityCounts.CRITICAL} Critical
                 </span>
               )}
               {vulnData.severityCounts.HIGH > 0 && (
-                <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded font-bold bg-orange-500/20 text-orange-300 border border-orange-500/30">
                   {vulnData.severityCounts.HIGH} High
                 </span>
               )}
               {vulnData.severityCounts.MODERATE > 0 && (
-                <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                   {vulnData.severityCounts.MODERATE} Moderate
                 </span>
               )}
               {vulnData.severityCounts.LOW > 0 && (
-                <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
                   {vulnData.severityCounts.LOW} Low
                 </span>
               )}
             </div>
 
-            {/* Per-Package Breakdown */}
-            <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar">
+            {/* Per-Package Breakdown List */}
+            <div className="p-6 space-y-3 overflow-y-auto custom-scrollbar flex-1">
               {Object.entries(vulnData.breakdown).map(([pkg, vulns]) => (
-                <div key={pkg} className="bg-[#0a0a12] rounded-lg border border-white/5 p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-mono text-sm font-bold text-gray-200 truncate">{pkg}</span>
-                    <span className="text-xs text-rose-400 font-bold">{(vulns as any[]).length} CVE{(vulns as any[]).length > 1 ? 's' : ''}</span>
-                  </div>
-                  <div className="space-y-1.5">
-                    {(vulns as any[]).map((v: any) => (
-                      <div key={v.id} className="flex items-center justify-between text-xs">
-                        <span className="font-mono text-rose-300">{v.id}</span>
-                        <span className={`px-1.5 py-0.5 rounded font-bold uppercase tracking-wider text-[9px] ${
-                          v.severity === 'CRITICAL' ? 'bg-red-500/30 text-red-300' :
-                          v.severity === 'HIGH' ? 'bg-orange-500/30 text-orange-300' :
-                          v.severity === 'MODERATE' ? 'bg-amber-500/30 text-amber-300' :
-                          'bg-sky-500/30 text-sky-300'
-                        }`}>
-                          {v.severity}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <PackageVulnRow key={pkg} pkg={pkg} vulns={vulns as any[]} ecosystem={ecosystem} />
               ))}
             </div>
           </div>

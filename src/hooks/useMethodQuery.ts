@@ -137,3 +137,22 @@ export async function ingestMethodData(
   const { data } = await axios.post(url.toString());
   return data;
 }
+
+/** Fetch reachability analysis for specific functions */
+export function useReachability(projectSlug: string, functions: string[], enabled = true) {
+  return useQuery({
+    queryKey: ['reachability', projectSlug, functions.join(',')],
+    queryFn: async () => {
+      try {
+        const { data } = await axios.get(`${METHOD_API}/reachability/${projectSlug}?functions=${encodeURIComponent(functions.join(','))}`);
+        return data;
+      } catch (err: any) {
+        if (err.response?.status === 404) return null;
+        throw err;
+      }
+    },
+    enabled: enabled && !!projectSlug && functions.length > 0,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+}

@@ -235,12 +235,12 @@ export default function ArchitectureTab() {
             </div>
             <div className="flex justify-between items-center border-b border-white/5 pb-2 col-span-2">
               <MetricTooltip metric={METHOD_METRICS.topHotspot}><span className="text-gray-500">Top Hotspot</span></MetricTooltip>
-              <span className="text-rose-400 truncate max-w-[200px]" title={hotspots?.[0]?.method.name}>
-                {hotspots?.[0]?.method.name || 'N/A'}{' '}
-                <span className="opacity-50 text-xs">
+              <div className="flex items-center text-rose-400" title={hotspots?.[0]?.method.name}>
+                <span className="truncate max-w-[200px]">{hotspots?.[0]?.method.name || 'N/A'}</span>
+                <span className="opacity-50 text-xs ml-1 whitespace-nowrap">
                   (risk: {hotspots?.[0]?.composite_risk ? (hotspots[0].composite_risk > 1000 ? (hotspots[0].composite_risk/1000).toFixed(1)+'k' : Math.round(hotspots[0].composite_risk)) : '0'})
                 </span>
-              </span>
+              </div>
             </div>
           </div>
         </div>
