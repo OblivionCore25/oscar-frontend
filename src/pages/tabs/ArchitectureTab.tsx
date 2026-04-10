@@ -327,12 +327,12 @@ export default function ArchitectureTab() {
                   <tr>
                     <th className="px-4 py-3">#</th>
                     <th className="px-4 py-3">Method</th>
-                    <th className="px-4 py-3 text-center">Fan-In</th>
-                    <th className="px-4 py-3 text-center">Fan-Out</th>
-                    <th className="px-4 py-3 text-center">Complexity</th>
-                    <th className="px-4 py-3 text-center">Centrality</th>
-                    <th className="px-4 py-3 text-center">Blast Radius</th>
-                    <th className="px-4 py-3 text-right">Risk Score</th>
+                    <th className="px-4 py-3 text-center"><MetricTooltip metric={METHOD_METRICS.methodFanIn}><span className="border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px] cursor-help">Fan-In</span></MetricTooltip></th>
+                    <th className="px-4 py-3 text-center"><MetricTooltip metric={METHOD_METRICS.methodFanOut}><span className="border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px] cursor-help">Fan-Out</span></MetricTooltip></th>
+                    <th className="px-4 py-3 text-center"><MetricTooltip metric={METHOD_METRICS.methodComplexity}><span className="border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px] cursor-help">Complexity</span></MetricTooltip></th>
+                    <th className="px-4 py-3 text-center"><MetricTooltip metric={METHOD_METRICS.methodCentrality}><span className="border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px] cursor-help">Centrality</span></MetricTooltip></th>
+                    <th className="px-4 py-3 text-center"><MetricTooltip metric={METHOD_METRICS.methodBlastRadius}><span className="border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px] cursor-help">Blast Radius</span></MetricTooltip></th>
+                    <th className="px-4 py-3 text-right"><MetricTooltip metric={METHOD_METRICS.compositeRisk}><span className="border-b border-dashed border-gray-600 hover:border-gray-400 transition-colors pb-[1px] cursor-help">Risk Score</span></MetricTooltip></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
