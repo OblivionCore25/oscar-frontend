@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight, Search, Globe, Shield, Download, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { TopRiskItem } from '../types/api';
@@ -101,7 +101,7 @@ function TopRiskTableRow({ item }: { item: TopRiskItem }) {
       <td className="px-4 py-4 text-right tabular-nums font-mono text-xs text-purple-400">
         {item.eigenvectorCentrality ? item.eigenvectorCentrality.toFixed(6) : 'N/A'}
       </td>
-      <td className="px-6 py-4 text-right">
+      <td className="px-6 py-4 text-right sticky right-0 bg-[#12121a] group-hover:bg-[#0a0a12] shadow-[-12px_0_15px_-4px_rgba(0,0,0,0.5)] border-l border-white/5 transition-colors z-10">
         {item.pageRank != null && (
           <Link
             to={`/package/${item.ecosystem}/${encodeURIComponent(item.name)}/${encodeURIComponent(item.version)}`}
@@ -130,6 +130,10 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
   // Track dynamically looked up items so they persist
   const [extraItems, setExtraItems] = useState<TopRiskItem[]>([]);
   const [isLookingUp, setIsLookingUp] = useState(false);
+
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const bottomScrollRef = useRef<HTMLDivElement>(null);
+  const [tableWidth, setTableWidth] = useState(0);
 
   const combinedItems = useMemo(() => {
     // Put extra (searched) items at top
@@ -176,6 +180,25 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
   const startIndex = (validCurrentPage - 1) * pageSize;
   const paginatedItems = filteredItems.slice(startIndex, startIndex + pageSize);
 
+  // Update table width when content changes
+  useEffect(() => {
+    if (bottomScrollRef.current) {
+      setTableWidth(bottomScrollRef.current.scrollWidth);
+    }
+  }, [paginatedItems]);
+
+  const handleTopScroll = () => {
+    if (topScrollRef.current && bottomScrollRef.current) {
+      bottomScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    }
+  };
+
+  const handleBottomScroll = () => {
+    if (topScrollRef.current && bottomScrollRef.current) {
+      topScrollRef.current.scrollLeft = bottomScrollRef.current.scrollLeft;
+    }
+  };
+
   return (
     <div className="bg-[#12121a] rounded-xl shadow-sm border border-[#2a2a35] flex flex-col">
       {/* Search Bar */}
@@ -200,7 +223,20 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
         </div>
       </div>
 
-      <div className="overflow-x-auto custom-scrollbar">
+      {/* Top Scrollbar (Synced) */}
+      <div 
+        ref={topScrollRef}
+        className="overflow-x-auto custom-scrollbar bg-[#0a0a12]/50 border-b border-[#2a2a35] h-[8px] sm:h-[12px]"
+        onScroll={handleTopScroll}
+      >
+        <div style={{ width: tableWidth, height: '1px' }} />
+      </div>
+
+      <div 
+        ref={bottomScrollRef}
+        className="overflow-x-auto custom-scrollbar"
+        onScroll={handleBottomScroll}
+      >
         <table className="w-full text-left text-sm whitespace-nowrap">
           <thead className="bg-[#0a0a12] border-b border-[#2a2a35] text-gray-500 font-semibold tracking-wide uppercase text-xs">
             <tr>
@@ -241,7 +277,7 @@ export default function TopRiskTable({ items }: TopRiskTableProps) {
                   <span className="cursor-help font-semibold">Eigenvec.</span>
                 </MetricTooltip>
               </th>
-              <th className="px-4 py-4 text-right">Actions</th>
+              <th className="px-4 py-4 text-right sticky right-0 z-20 bg-[#0a0a12] shadow-[-12px_0_15px_-4px_rgba(0,0,0,0.5)] border-l border-[#2a2a35]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100/5">
