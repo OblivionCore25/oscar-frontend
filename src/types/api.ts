@@ -173,3 +173,21 @@ export interface EnrichmentResponse {
   licenses?: string[];
   isDeprecated?: boolean;
 }
+
+// Temporal Analytics --------------------------------------------------------
+
+export interface TemporalDataPoint {
+  version: string;
+  published_at: string;
+  fan_out: number;
+  global_fan_in: number | null;
+  vuln_count: number;
+}
+
+export interface TemporalReport {
+  ecosystem: string;
+  package_name: string;
+  data_points: TemporalDataPoint[];
+  total_versions_available: number;
+  sampled_versions: number;
+}

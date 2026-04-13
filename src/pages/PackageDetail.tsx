@@ -8,6 +8,7 @@ import OverviewTab from './tabs/OverviewTab';
 import SupplyChainTab from './tabs/SupplyChainTab';
 import SecurityTab from './tabs/SecurityTab';
 import ArchitectureTab from './tabs/ArchitectureTab';
+import TemporalTab from './tabs/TemporalTab';
 import { Package, ChevronDown, AlertCircle, Download } from 'lucide-react';
 
 const TABS = [
@@ -15,6 +16,7 @@ const TABS = [
   { key: 'supply-chain', label: 'Supply Chain' },
   { key: 'security', label: 'Security' },
   { key: 'architecture', label: 'Internal Architecture' },
+  { key: 'temporal', label: 'Temporal' },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -24,6 +26,7 @@ const TAB_COLORS: Record<TabKey, string> = {
   'supply-chain': 'border-sky-500 text-sky-400',
   'security': 'border-rose-500 text-rose-400',
   'architecture': 'border-emerald-500 text-emerald-400',
+  'temporal': 'border-fuchsia-500 text-fuchsia-400',
 };
 
 export default function PackageDetail() {
@@ -232,6 +235,7 @@ export default function PackageDetail() {
             {activeTab === 'supply-chain' && <SupplyChainTab />}
             {activeTab === 'security' && <SecurityTab />}
             {activeTab === 'architecture' && <ArchitectureTab />}
+            {activeTab === 'temporal' && <TemporalTab ecosystem={ecosystem} name={packageName} />}
           </div>
 
         </div>
