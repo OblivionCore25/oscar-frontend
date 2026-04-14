@@ -191,7 +191,7 @@ export default function PackageDetail() {
                         }}
                         className="text-left px-4 py-2.5 text-sm font-medium text-gray-300 hover:text-indigo-300 hover:bg-white/5 transition-colors flex items-center justify-between group"
                       >
-                        CycloneDX 1.5
+                        CycloneDX 1.7
                         <span className="text-[10px] text-gray-600 font-mono group-hover:text-indigo-500/.5 border border-transparent group-hover:border-indigo-500/20 px-1.5 py-0.5 rounded transition-colors">JSON</span>
                       </button>
                       <button
