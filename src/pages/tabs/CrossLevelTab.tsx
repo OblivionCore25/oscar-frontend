@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Loader2, Zap, ShieldAlert, Package, TrendingUp, Activity } from 'lucide-react';
 import type { CrossLevelReport } from '../../types/api';
+import MetricTooltip from '../../components/MetricTooltip';
+import { CROSS_LEVEL_METRICS, METHOD_METRICS, SUPPLY_CHAIN_METRICS } from '../../data/metricDefinitions';
 
 const API_BASE = import.meta.env.VITE_OSCAR_API_URL || 'http://localhost:8000';
 
@@ -162,7 +164,11 @@ export default function CrossLevelTab({ ecosystem, name, version }: CrossLevelTa
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-[#12121a] border border-[#2a2a35] rounded-xl p-5 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-3xl -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700" />
-          <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Coverage</h3>
+          <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">
+            <MetricTooltip metric={CROSS_LEVEL_METRICS.analysisCoverage}>
+              <span className="cursor-help hover:text-gray-300 transition-colors border-b border-gray-500/30 border-dashed pb-0.5">Coverage</span>
+            </MetricTooltip>
+          </h3>
           <div className="text-2xl font-bold text-gray-100 tabular-nums">
             {data.analyzed_deps} <span className="text-sm font-normal text-gray-500">/ {data.total_deps} deps</span>
           </div>
@@ -171,7 +177,11 @@ export default function CrossLevelTab({ ecosystem, name, version }: CrossLevelTa
 
         <div className="bg-[#12121a] border border-[#2a2a35] rounded-xl p-5 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700" />
-          <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Methods Analyzed</h3>
+          <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">
+            <MetricTooltip metric={CROSS_LEVEL_METRICS.methodsAnalyzed}>
+              <span className="cursor-help hover:text-gray-300 transition-colors border-b border-gray-500/30 border-dashed pb-0.5">Methods Analyzed</span>
+            </MetricTooltip>
+          </h3>
           <div className="text-2xl font-bold text-gray-100 tabular-nums">
             {data.top_risks.length}
           </div>
@@ -179,7 +189,11 @@ export default function CrossLevelTab({ ecosystem, name, version }: CrossLevelTa
 
         <div className="bg-[#12121a] border border-[#2a2a35] rounded-xl p-5 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full blur-3xl -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700" />
-          <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Max Complexity</h3>
+          <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">
+            <MetricTooltip metric={METHOD_METRICS.methodComplexity}>
+              <span className="cursor-help hover:text-gray-300 transition-colors border-b border-gray-500/30 border-dashed pb-0.5">Max Complexity</span>
+            </MetricTooltip>
+          </h3>
           <div className="text-2xl font-bold text-orange-400 tabular-nums">
             {Math.max(...data.top_risks.map(r => r.complexity))}
           </div>
@@ -187,7 +201,11 @@ export default function CrossLevelTab({ ecosystem, name, version }: CrossLevelTa
 
         <div className="bg-[#12121a] border border-[#2a2a35] rounded-xl p-5 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700" />
-          <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Max Ecosystem Fan-In</h3>
+          <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">
+            <MetricTooltip metric={SUPPLY_CHAIN_METRICS.fanIn}>
+              <span className="cursor-help hover:text-gray-300 transition-colors border-b border-gray-500/30 border-dashed pb-0.5">Max Ecosystem Fan-In</span>
+            </MetricTooltip>
+          </h3>
           <div className="text-2xl font-bold text-indigo-400 tabular-nums">
             {formatFanIn(Math.max(...data.top_risks.map(r => r.ecosystem_fan_in)))}
           </div>
@@ -274,11 +292,31 @@ export default function CrossLevelTab({ ecosystem, name, version }: CrossLevelTa
                 <th className="text-left px-6 py-3 font-semibold">#</th>
                 <th className="text-left px-4 py-3 font-semibold">Method</th>
                 <th className="text-left px-4 py-3 font-semibold">Package</th>
-                <th className="text-right px-4 py-3 font-semibold">Complexity</th>
-                <th className="text-right px-4 py-3 font-semibold">Blast Radius</th>
-                <th className="text-right px-4 py-3 font-semibold">Ecosystem Fan-In</th>
-                <th className="text-right px-4 py-3 font-semibold">Composite Risk</th>
-                <th className="text-right px-6 py-3 font-semibold">Cross-Level Risk</th>
+                <th className="text-right px-4 py-3 font-semibold">
+                  <MetricTooltip metric={METHOD_METRICS.methodComplexity}>
+                    <span className="cursor-help hover:text-gray-300 transition-colors underline decoration-gray-500/50 decoration-dashed underline-offset-4">Complexity</span>
+                  </MetricTooltip>
+                </th>
+                <th className="text-right px-4 py-3 font-semibold">
+                  <MetricTooltip metric={METHOD_METRICS.methodBlastRadius}>
+                    <span className="cursor-help hover:text-gray-300 transition-colors underline decoration-gray-500/50 decoration-dashed underline-offset-4">Blast Radius</span>
+                  </MetricTooltip>
+                </th>
+                <th className="text-right px-4 py-3 font-semibold">
+                  <MetricTooltip metric={SUPPLY_CHAIN_METRICS.fanIn}>
+                    <span className="cursor-help hover:text-gray-300 transition-colors underline decoration-gray-500/50 decoration-dashed underline-offset-4">Ecosystem Fan-In</span>
+                  </MetricTooltip>
+                </th>
+                <th className="text-right px-4 py-3 font-semibold">
+                  <MetricTooltip metric={METHOD_METRICS.compositeRisk}>
+                    <span className="cursor-help hover:text-gray-300 transition-colors underline decoration-gray-500/50 decoration-dashed underline-offset-4">Composite Risk</span>
+                  </MetricTooltip>
+                </th>
+                <th className="text-right px-6 py-3 font-semibold">
+                  <MetricTooltip metric={CROSS_LEVEL_METRICS.crossLevelRisk}>
+                    <span className="cursor-help hover:text-gray-300 transition-colors underline decoration-gray-500/50 decoration-dashed underline-offset-4">Cross-Level Risk</span>
+                  </MetricTooltip>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#2a2a35]/50">

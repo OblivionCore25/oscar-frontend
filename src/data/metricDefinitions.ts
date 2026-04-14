@@ -278,3 +278,28 @@ export const METHOD_METRICS: Record<string, MetricInfo> = {
     glossaryAnchor: 'composite-risk',
   },
 };
+
+// ─── Cross-Level Risk Observatory ───────────────────────────────────────────
+
+export const CROSS_LEVEL_METRICS: Record<string, MetricInfo> = {
+  crossLevelRisk: {
+    name: 'Cross-Level Risk',
+    definition: 'Synthesizes ecosystem-level dependency metrics with method-level internal architecture metrics to produce a unified risk ranking across the entire supply chain.',
+    formula: 'Cross-Level Risk = Method_Composite_Risk × log₁₀(Ecosystem_Fan_In + 1)',
+    whyItMatters: 'Identifies the absolute most structurally dangerous methods in your supply chain. A method with moderate internal risk becomes extremely dangerous if its package has tens of thousands of ecosystem dependents.',
+    citation: 'OSCAR cross-level synthesis.',
+    glossaryAnchor: 'cross-level-risk',
+  },
+  analysisCoverage: {
+    name: 'Analysis Coverage',
+    definition: 'The proportion of transitive dependencies that successfully underwent deep method-level analysis.',
+    whyItMatters: 'Helps determine the breadth of the Cross-Level Risk analysis. Low coverage might mean many dependencies are not yet ingested in the method observatory.',
+    glossaryAnchor: 'analysis-coverage',
+  },
+  methodsAnalyzed: {
+    name: 'Methods Analyzed',
+    definition: 'The total number of methods extracted and evaluated from the top bottleneck dependencies.',
+    whyItMatters: 'Indicates the depth of the scan. A high number ensures no hidden hotspots are missed across the selected critical packages.',
+    glossaryAnchor: 'methods-analyzed',
+  },
+};
