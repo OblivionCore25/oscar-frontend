@@ -41,9 +41,10 @@ export default function OverviewTab() {
       {/* Primary KPI Grid — uses 3 cols on medium screens, 6 on large+ */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <MetricCard
-          label="Direct Dependencies"
-          value={m.directDependencies}
-          tooltip={METRICS.fanOut}
+          label="Transitive Deps"
+          value={m.blastRadius}
+          tooltip={METRICS.transitiveDepth}
+          subtitle={m.transitiveDepth ? `Depth: ${m.transitiveDepth}` : undefined}
         />
         <MetricCard
           label="Fan-Out"
