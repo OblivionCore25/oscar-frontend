@@ -191,3 +191,46 @@ export interface TemporalReport {
   total_versions_available: number;
   sampled_versions: number;
 }
+
+// Cross-Level Risk Propagation -----------------------------------------------
+
+export interface CrossLevelMethodRisk {
+  method_name: string;
+  method_module: string;
+  method_qualified_name: string;
+  dependency_package: string;
+  dependency_version: string;
+  dependency_ecosystem: string;
+  complexity: number;
+  method_blast_radius: number;
+  method_centrality: number;
+  change_frequency: number;
+  method_composite_risk: number;
+  ecosystem_fan_in: number;
+  bottleneck_score: number;
+  cross_level_risk: number;
+}
+
+export interface AnalyzedDependency {
+  package: string;
+  version: string;
+  ecosystem: string;
+  method_count: number;
+  top_method: string | null;
+  top_method_risk: number;
+  ecosystem_fan_in: number;
+  bottleneck_score: number;
+  analysis_cached: boolean;
+}
+
+export interface CrossLevelReport {
+  root_package: string;
+  root_version: string;
+  root_ecosystem: string;
+  analyzed_deps: number;
+  total_deps: number;
+  top_risks: CrossLevelMethodRisk[];
+  analyzed_dependencies: AnalyzedDependency[];
+  analysis_coverage_pct: number;
+}
+

@@ -9,6 +9,7 @@ import SupplyChainTab from './tabs/SupplyChainTab';
 import SecurityTab from './tabs/SecurityTab';
 import ArchitectureTab from './tabs/ArchitectureTab';
 import TemporalTab from './tabs/TemporalTab';
+import CrossLevelTab from './tabs/CrossLevelTab';
 import { Package, ChevronDown, AlertCircle, Download } from 'lucide-react';
 
 const TABS = [
@@ -17,6 +18,7 @@ const TABS = [
   { key: 'security', label: 'Security' },
   { key: 'architecture', label: 'Internal Architecture' },
   { key: 'temporal', label: 'Temporal' },
+  { key: 'cross-level', label: 'Cross-Level Risk' },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -27,6 +29,7 @@ const TAB_COLORS: Record<TabKey, string> = {
   'security': 'border-rose-500 text-rose-400',
   'architecture': 'border-emerald-500 text-emerald-400',
   'temporal': 'border-fuchsia-500 text-fuchsia-400',
+  'cross-level': 'border-amber-500 text-amber-400',
 };
 
 export default function PackageDetail() {
@@ -236,6 +239,7 @@ export default function PackageDetail() {
             {activeTab === 'security' && <SecurityTab />}
             {activeTab === 'architecture' && <ArchitectureTab />}
             {activeTab === 'temporal' && <TemporalTab ecosystem={ecosystem} name={packageName} />}
+            {activeTab === 'cross-level' && <CrossLevelTab ecosystem={ecosystem} name={packageName} version={version} />}
           </div>
 
         </div>
