@@ -14,3 +14,11 @@ build/
 .vscode/
 .idea/
 *.swp
+
+# Testing and Coverage
+coverage/
+/test_*.js
+/patch_*.js
+
+# OS files
+.DS_Store
