@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getTransitiveGraphStream } from '../services/api';
-import type { StreamProgressEvent } from '../types/api';
+import { getTransitiveGraphStream, getPackageDetails, getTransitiveDepths, getTransitiveLibyearsBreakdown, getVulnerabilityBreakdown } from '../services/api';
+import type { StreamProgressEvent, PackageDetailsResponse, VulnerabilityBreakdownResponse } from '../types/api';
 
 interface UseGraphQueryParams {
   ecosystem: string | null;
@@ -28,4 +28,40 @@ export function useGraphQuery({
   });
 
   return { ...query, progress };
+}
+
+export function usePackageDetailsQuery({ ecosystem, packageName, version }: UseGraphQueryParams) {
+  return useQuery<PackageDetailsResponse, Error>({
+    queryKey: ['packageDetails', ecosystem, packageName, version],
+    queryFn: () => getPackageDetails(ecosystem!, packageName!, version!),
+    enabled: !!ecosystem && !!packageName && !!version,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function usePackageDepthsQuery({ ecosystem, packageName, version }: UseGraphQueryParams) {
+  return useQuery<Record<string, number>, Error>({
+    queryKey: ['packageDepths', ecosystem, packageName, version],
+    queryFn: () => getTransitiveDepths(ecosystem!, packageName!, version!),
+    enabled: !!ecosystem && !!packageName && !!version,
+    staleTime: Infinity,
+  });
+}
+
+export function usePackageLibyearsQuery({ ecosystem, packageName, version }: UseGraphQueryParams) {
+  return useQuery<Record<string, number>, Error>({
+    queryKey: ['packageLibyears', ecosystem, packageName, version],
+    queryFn: () => getTransitiveLibyearsBreakdown(ecosystem!, packageName!, version!),
+    enabled: !!ecosystem && !!packageName && !!version,
+    staleTime: Infinity,
+  });
+}
+
+export function useVulnerabilityQuery({ ecosystem, packageName, version }: UseGraphQueryParams) {
+  return useQuery<VulnerabilityBreakdownResponse, Error>({
+    queryKey: ['vulnerabilities', ecosystem, packageName, version],
+    queryFn: () => getVulnerabilityBreakdown(ecosystem!, packageName!, version!),
+    enabled: !!ecosystem && !!packageName && !!version,
+    staleTime: 10 * 60 * 1000, // 10 minutes — CVE data changes infrequently
+  });
 }

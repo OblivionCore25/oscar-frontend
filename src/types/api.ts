@@ -41,6 +41,21 @@ export interface PackageMetrics {
   fanOut: number;
   bottleneckScore: number;
   diamondCount: number;
+  pageRank?: number;
+  eigenvectorCentrality?: number;
+  closenessCentrality?: number;
+  betweennessCentrality?: number;
+  blastRadius?: number;
+  libyears?: number;
+  transitiveDepth?: number;
+  // External enrichment
+  globalFanIn?: number;
+  globalDirectDependents?: number;
+  globalIndirectDependents?: number;
+  monthlyDownloads?: number;
+  scorecardScore?: number;
+  scorecardChecks?: Record<string, number>;
+  sourceRepoUrl?: string;
 }
 
 export interface PackageDetailsResponse {
@@ -63,6 +78,16 @@ export interface TopRiskItem {
   versionFanOut: number;
   bottleneckScore: number;
   bottleneckPercentile: number;
+  pageRank?: number;
+  eigenvectorCentrality?: number;
+  closenessCentrality?: number;
+  betweennessCentrality?: number;
+  blastRadius?: number;
+  // External enrichment
+  globalFanIn?: number;
+  monthlyDownloads?: number;
+  scorecardScore?: number;
+  sourceRepoUrl?: string;
 }
 
 export interface TopRiskResponse {
@@ -107,3 +132,105 @@ export interface StreamCompleteEvent {
 }
 
 export type TransitiveStreamEvent = StreamProgressEvent | StreamCompleteEvent;
+
+// Vulnerability ---------------------------------------------------------
+
+export interface VulnerabilitySummary {
+  id: string;
+  aliases: string[];
+  summary: string;
+  severity: 'CRITICAL' | 'HIGH' | 'MODERATE' | 'LOW' | 'UNKNOWN';
+  published: string;
+  fixedVersions: string[];
+}
+
+export interface VulnerabilityBreakdownResponse {
+  breakdown: Record<string, VulnerabilitySummary[]>;
+  totalAffected: number;
+  totalVulns: number;
+  severityCounts: {
+    CRITICAL: number;
+    HIGH: number;
+    MODERATE: number;
+    LOW: number;
+    UNKNOWN: number;
+  };
+}
+
+// Enrichment ---------------------------------------------------------------
+
+export interface EnrichmentResponse {
+  ecosystem: string;
+  package: string;
+  version: string;
+  globalFanIn?: number;
+  globalDirectDependents?: number;
+  globalIndirectDependents?: number;
+  monthlyDownloads?: number;
+  scorecardScore?: number;
+  scorecardChecks?: Record<string, number>;
+  sourceRepoUrl?: string;
+  licenses?: string[];
+  isDeprecated?: boolean;
+}
+
+// Temporal Analytics --------------------------------------------------------
+
+export interface TemporalDataPoint {
+  version: string;
+  published_at: string;
+  fan_out: number;
+  global_fan_in: number | null;
+  vuln_count: number;
+}
+
+export interface TemporalReport {
+  ecosystem: string;
+  package_name: string;
+  data_points: TemporalDataPoint[];
+  total_versions_available: number;
+  sampled_versions: number;
+}
+
+// Cross-Level Risk Propagation -----------------------------------------------
+
+export interface CrossLevelMethodRisk {
+  method_name: string;
+  method_module: string;
+  method_qualified_name: string;
+  dependency_package: string;
+  dependency_version: string;
+  dependency_ecosystem: string;
+  complexity: number;
+  method_blast_radius: number;
+  method_centrality: number;
+  change_frequency: number;
+  method_composite_risk: number;
+  ecosystem_fan_in: number;
+  bottleneck_score: number;
+  cross_level_risk: number;
+}
+
+export interface AnalyzedDependency {
+  package: string;
+  version: string;
+  ecosystem: string;
+  method_count: number;
+  top_method: string | null;
+  top_method_risk: number;
+  ecosystem_fan_in: number;
+  bottleneck_score: number;
+  analysis_cached: boolean;
+}
+
+export interface CrossLevelReport {
+  root_package: string;
+  root_version: string;
+  root_ecosystem: string;
+  analyzed_deps: number;
+  total_deps: number;
+  top_risks: CrossLevelMethodRisk[];
+  analyzed_dependencies: AnalyzedDependency[];
+  analysis_coverage_pct: number;
+}
+

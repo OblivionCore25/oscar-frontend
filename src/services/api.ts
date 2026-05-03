@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { PackageDetailsResponse, TransitiveGraphResponse, TopRiskResponse, CoverageResponse, IngestedPackagesResponse, StreamProgressEvent } from '../types/api';
+import type { PackageDetailsResponse, TransitiveGraphResponse, TopRiskResponse, CoverageResponse, IngestedPackagesResponse, StreamProgressEvent, VulnerabilityBreakdownResponse, EnrichmentResponse } from '../types/api';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_OSCAR_API_URL,
@@ -15,6 +15,28 @@ export const getPackageDetails = async (
 ): Promise<PackageDetailsResponse> => {
   const response = await apiClient.get<PackageDetailsResponse>(
     `/packages/${ecosystem}/${encodeURIComponent(packageName)}/${encodeURIComponent(version)}`
+  );
+  return response.data;
+};
+
+export const getTransitiveDepths = async (
+  ecosystem: string,
+  packageName: string,
+  version: string
+): Promise<Record<string, number>> => {
+  const response = await apiClient.get<Record<string, number>>(
+    `/dependencies/${ecosystem}/${encodeURIComponent(packageName)}/${encodeURIComponent(version)}/depths`
+  );
+  return response.data;
+};
+
+export const getTransitiveLibyearsBreakdown = async (
+  ecosystem: string,
+  packageName: string,
+  version: string
+): Promise<Record<string, number>> => {
+  const response = await apiClient.get<Record<string, number>>(
+    `/dependencies/${ecosystem}/${encodeURIComponent(packageName)}/${encodeURIComponent(version)}/libyears`
   );
   return response.data;
 };
@@ -99,3 +121,24 @@ export const getIngestedPackages = async (
   return response.data;
 };
 
+export const getVulnerabilityBreakdown = async (
+  ecosystem: string,
+  packageName: string,
+  version: string
+): Promise<VulnerabilityBreakdownResponse> => {
+  const response = await apiClient.get<VulnerabilityBreakdownResponse>(
+    `/dependencies/${ecosystem}/${encodeURIComponent(packageName)}/${encodeURIComponent(version)}/vulnerabilities`
+  );
+  return response.data;
+};
+
+export const getEnrichment = async (
+  ecosystem: string,
+  packageName: string,
+  version: string
+): Promise<EnrichmentResponse> => {
+  const response = await apiClient.get<EnrichmentResponse>(
+    `/analytics/enrich/${ecosystem}/${encodeURIComponent(packageName)}/${encodeURIComponent(version)}`
+  );
+  return response.data;
+};
