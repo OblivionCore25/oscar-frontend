@@ -1,20 +1,22 @@
 import type { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
-import { Network, AlertTriangle, FlaskConical, Search } from 'lucide-react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { AlertTriangle, Search, BookOpen } from 'lucide-react';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
+  const location = useLocation();
+
   return (
-    <div className="flex bg-gray-50 h-screen w-screen overflow-hidden text-gray-900 font-sans">
+    <div className="flex bg-[#1a1a2e] h-screen w-screen text-gray-100 font-sans">
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shrink-0">
-        <div className="h-16 flex items-center px-5 border-b border-gray-200 gap-3">
+      <aside className="w-64 bg-[#12121a] border-r border-[#2a2a35] flex flex-col shrink-0 overflow-hidden">
+        <div className="h-16 flex items-center px-5 border-b border-[#2a2a35] gap-3">
           <img src="/oscar-logo.png" alt="OSCAR Logo" className="w-8 h-8 shrink-0" />
           <div className="leading-tight">
-            <span className="font-bold text-sm tracking-tight text-gray-900 block">OSCAR</span>
+            <span className="font-bold text-sm tracking-tight text-gray-100 block">OSCAR</span>
             <span className="text-[10px] text-gray-500 tracking-wide block">Dependency Graph Observatory</span>
           </div>
         </div>
@@ -22,56 +24,47 @@ export function Layout({ children }: LayoutProps) {
         <nav className="flex-1 py-6 px-4 space-y-2">
           <NavLink 
             to="/" 
-            className={({ isActive }) => 
-              `flex items-center px-4 py-3 rounded-md transition-colors ${
-                isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
-              }`
-            }
+            className={() => {
+              const isActive = location.pathname === '/' || location.pathname.startsWith('/package/');
+              return `flex items-center px-4 py-3 rounded-md transition-colors ${
+                isActive ? 'bg-indigo-900/30 text-indigo-400 font-medium' : 'text-gray-500 hover:bg-[#2a2a35]'
+              }`;
+            }}
           >
             <Search className="w-5 h-5 mr-3" />
-            Package Search
-          </NavLink>
-          
-          <NavLink 
-            to="/graph" 
-            className={({ isActive }) => 
-              `flex items-center px-4 py-3 rounded-md transition-colors ${
-                isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
-              }`
-            }
-          >
-            <Network className="w-5 h-5 mr-3" />
-            Graph Viewer
+            Explore
           </NavLink>
           
           <NavLink 
             to="/analytics" 
             className={({ isActive }) => 
               `flex items-center px-4 py-3 rounded-md transition-colors ${
-                isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
+                isActive ? 'bg-indigo-900/30 text-indigo-400 font-medium' : 'text-gray-500 hover:bg-[#2a2a35]'
               }`
             }
           >
             <AlertTriangle className="w-5 h-5 mr-3" />
-            Top Risk
+            Ecosystem Risks
           </NavLink>
 
+          <div className="border-t border-[#2a2a35] my-3" />
+
           <NavLink 
-            to="/methods" 
+            to="/glossary" 
             className={({ isActive }) => 
               `flex items-center px-4 py-3 rounded-md transition-colors ${
-                isActive ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
+                isActive ? 'bg-indigo-900/30 text-indigo-400 font-medium' : 'text-gray-500 hover:bg-[#2a2a35]'
               }`
             }
           >
-            <FlaskConical className="w-5 h-5 mr-3" />
-            Method Observatory
+            <BookOpen className="w-5 h-5 mr-3" />
+            Reference
           </NavLink>
         </nav>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto overflow-x-hidden">
         {children}
       </main>
     </div>

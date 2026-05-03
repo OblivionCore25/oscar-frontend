@@ -1,14 +1,11 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { Layout } from './components/Layout';
 import PackageSearch from './pages/PackageSearch';
-import GraphViewer from './pages/GraphViewer';
+import PackageDetail from './pages/PackageDetail';
 import TopRisk from './pages/TopRisk';
-import MethodExplorer from './pages/MethodExplorer';
-import HotspotDashboard from './pages/HotspotDashboard';
-import CommunityView from './pages/CommunityView';
-import MethodGraphViewer from './pages/MethodGraphViewer';
+import MetricsGlossary from './pages/MetricsGlossary';
 
 // Global HTTP Cache Client
 const queryClient = new QueryClient({
@@ -20,19 +17,49 @@ const queryClient = new QueryClient({
   },
 });
 
+/** Backward-compat redirect: /graph?ecosystem=X&package=Y&version=Z → /package/X/Y/Z?tab=supply-chain */
+function GraphRedirect() {
+  const [sp] = useSearchParams();
+  const eco = sp.get('ecosystem') || 'npm';
+  const pkg = sp.get('package');
+  const ver = sp.get('version');
+  if (pkg && ver) {
+    return <Navigate to={`/package/${eco}/${encodeURIComponent(pkg)}/${encodeURIComponent(ver)}?tab=supply-chain`} replace />;
+  }
+  // No params → return home
+  return <Navigate to="/" replace />;
+}
+
+/** Backward-compat redirect: /research?ecosystem=X&package=Y&version=Z → /package/X/Y/Z */
+function ResearchRedirect() {
+  const [sp] = useSearchParams();
+  const eco = sp.get('ecosystem') || 'npm';
+  const pkg = sp.get('package');
+  const ver = sp.get('version');
+  if (pkg && ver) {
+    return <Navigate to={`/package/${eco}/${encodeURIComponent(pkg)}/${encodeURIComponent(ver)}`} replace />;
+  }
+  return <Navigate to="/" replace />;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Layout>
           <Routes>
+            {/* Primary routes */}
             <Route path="/" element={<PackageSearch />} />
-            <Route path="/graph" element={<GraphViewer />} />
+            <Route path="/package/:ecosystem/:name/:version" element={<PackageDetail />} />
             <Route path="/analytics" element={<TopRisk />} />
-            <Route path="/methods" element={<MethodExplorer />} />
-            <Route path="/methods/hotspots" element={<HotspotDashboard />} />
-            <Route path="/methods/communities" element={<CommunityView />} />
-            <Route path="/methods/graph" element={<MethodGraphViewer />} />
+            <Route path="/glossary" element={<MetricsGlossary />} />
+
+            {/* Backward-compatible redirects */}
+            <Route path="/graph" element={<GraphRedirect />} />
+            <Route path="/research" element={<ResearchRedirect />} />
+            
+            {/* Catch-all legacy methods route to index */}
+            <Route path="/methods/*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>
       </BrowserRouter>
